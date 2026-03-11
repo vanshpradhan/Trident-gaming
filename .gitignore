@@ -7,9 +7,8 @@ coverage/
 .env*
 !.env.example
 *.db
-trident-h2.*
-nul
 backend/target/
 backend/.mvn/
 *.class
 *.jar
+nul
