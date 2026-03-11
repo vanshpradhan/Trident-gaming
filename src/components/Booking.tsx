@@ -8,6 +8,7 @@ import { useAuth } from "../lib/auth";
 export function Booking() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [duration, setDuration] = useState<number>(1);
   const [players, setPlayers] = useState<number>(1);
   const [consoleType, setConsoleType] = useState<"ps5" | "psvr2">("ps5");
   const [booking, setBooking] = useState<any>(null);
@@ -16,13 +17,21 @@ export function Booking() {
   const { isLoggedIn, isAdmin } = useAuth();
 
   const dates = Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i));
-  const times = ["10:00 AM", "12:00 PM", "02:00 PM", "04:00 PM", "06:00 PM", "08:00 PM", "10:00 PM"];
+  const times = [
+    "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
+    "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM", "09:00 PM", "10:00 PM", "11:00 PM"
+  ];
 
   const calculatePrice = () => {
-    if (consoleType === "psvr2") return 500;
-    if (players === 1) return 100;
-    if (players === 2) return 150;
-    return 150 + (players - 2) * 50;
+    let basePrice = 0;
+    if (consoleType === "psvr2") {
+      basePrice = 500;
+    } else {
+      if (players === 1) basePrice = 100;
+      else if (players === 2) basePrice = 150;
+      else basePrice = 150 + (players - 2) * 50;
+    }
+    return basePrice * duration;
   };
 
   const handleBooking = async () => {
@@ -45,7 +54,7 @@ export function Booking() {
         date: format(selectedDate, "yyyy-MM-dd"),
         time_slot: selectedTime,
         players: consoleType === "psvr2" ? 1 : players,
-        duration_hours: 1,
+        duration_hours: duration,
       });
       setBooking(result);
     } catch (err: any) {
@@ -96,6 +105,10 @@ export function Booking() {
             <div className="flex justify-between">
               <span className="text-muted-foreground uppercase tracking-widest text-sm">Time</span>
               <span className="font-display font-black text-white">{booking.time_slot}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground uppercase tracking-widest text-sm">Duration</span>
+              <span className="font-display font-black text-white">{booking.duration_hours} {booking.duration_hours === 1 ? 'hr' : 'hrs'}</span>
             </div>
             <div className="flex justify-between pt-4 border-t-2 border-white/10">
               <span className="text-muted-foreground uppercase tracking-widest text-sm">Total</span>
@@ -273,6 +286,31 @@ export function Booking() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Duration Selection */}
+          <div className="bg-zinc-900 border-2 border-white/10 p-8 overflow-hidden clip-path-zentry">
+            <h3 className="text-2xl font-display font-black mb-6 flex items-center gap-4 text-white uppercase tracking-wider">
+              <Clock className="w-8 h-8 text-primary" />
+              Duration
+            </h3>
+            <div className="flex flex-wrap items-center gap-4">
+              {[1, 2, 3, 4, 5].map((num) => (
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  key={num}
+                  onClick={() => setDuration(num)}
+                  className={`px-6 py-4 border-2 flex items-center justify-center text-xl font-display font-black transition-all duration-300 clip-path-zentry ${
+                    duration === num
+                      ? "bg-primary text-black border-primary"
+                      : "bg-black border-white/10 text-white hover:border-primary"
+                  }`}
+                >
+                  {num} {num === 1 ? 'HR' : 'HRS'}
+                </motion.button>
+              ))}
+            </div>
+          </div>
         </motion.div>
 
         {/* Summary Card */}
@@ -305,8 +343,12 @@ export function Booking() {
                   <span className="font-display font-black text-xl text-white uppercase tracking-wider">{players}</span>
                 </div>
               )}
+              <div className="flex justify-between items-center pb-6 border-b-2 border-white/10">
+                <span className="text-muted-foreground font-medium uppercase tracking-widest">Duration</span>
+                <span className="font-display font-black text-xl text-white uppercase tracking-wider">{duration} {duration === 1 ? 'hr' : 'hrs'}</span>
+              </div>
               <div className="flex justify-between items-center pt-6">
-                <span className="text-xl text-muted-foreground font-medium uppercase tracking-widest">Total (1 hr)</span>
+                <span className="text-xl text-muted-foreground font-medium uppercase tracking-widest">Total</span>
                 <span className="text-4xl font-display font-black text-primary">
                   ₹{calculatePrice()}
                 </span>
