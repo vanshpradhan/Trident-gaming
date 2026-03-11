@@ -1,20 +1,84 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Trident Gaming Café 🔱
 
-# Run and deploy your AI Studio app
+Trident Gaming Café is a premium, modern gaming café management system designed for high-performance gaming centers and VR lounges. It provides a seamless experience for both gamers and administrators.
 
-This contains everything you need to run your app locally.
+![Trident Logo](public/trident-logo.png)
 
-View your app in AI Studio: https://ai.studio/apps/e8be28e1-c553-4bf8-84ef-f3b2b32b227b
+## 🚀 Overview
 
-## Run Locally
+The system manages the entire lifecycle of a gaming café session—from console discovery and bookings to food/snack ordering and real-time loyalty tracking. 
 
-**Prerequisites:**  Node.js
+### Key Features
+- **Live Console Management**: Real-time status tracking for high-end consoles (PS5, PSVR2).
+- **Session Booking**: Integrated booking system with time-slot management.
+- **Snack Bar Integrations**: Digital menu for ordering snacks and drinks while gaming.
+- **Loyalty & Leveling**: Gamified user experience with XP, Tiers (Bronze to Gold), and Active Boosters.
+- **Admin Command Center**: Complete dashboard for managing sessions, inventory, and revenue.
 
+---
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 🛠️ Tech Stack
+
+- **Frontend**: React, Vite, Framer Motion, Tailwind CSS
+- **Backend**: Java 21, Spring Boot, Spring Data JPA, Spring Security
+- **Database**: H2 (Embedded database)
+- **Communication**: SSE (Server-Sent Events) for real-time updates
+
+---
+
+## 📦 Prerequisites
+
+Ensure you have the following installed:
+- **Node.js** (v18 or higher)
+- **Java Development Kit (JDK) 21** or higher
+
+---
+
+## 🏗️ Installation & Setup
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/vanshpradhan/Trident-gaming.git
+   cd Trident-gaming
+   ```
+
+2. **Frontend Setup**:
+   ```bash
+   npm install
+   ```
+
+3. **Backend Setup**:
+   The backend uses Maven Wrapper, so no separate installation is required besides the JDK.
+
+---
+
+## 🚦 Running the Application
+
+### 1. Start the Frontend
+In the root directory:
+```bash
+npm run dev
+```
+The frontend will be available at `http://localhost:3000`.
+
+### 2. Start the Backend
+Navigate to the `backend` folder and run the server. 
+
+> [!IMPORTANT]
+> **Windows/Encoding Note:** If your project path contains special characters (like `é`), use the following command to avoid script encoding issues:
+
+```powershell
+cd backend
+java -Dmaven.multiModuleProjectDirectory=. -classpath .mvn\wrapper\maven-wrapper.jar org.apache.maven.wrapper.MavenWrapperMain spring-boot:run
+```
+
+Otherwise, you can use:
+```powershell
+./mvnw spring-boot:run
+```
+The backend will be available at `http://localhost:8080`.
+
+---
+
+## 📄 License
+This project is for demonstration and gaming café management purposes.
