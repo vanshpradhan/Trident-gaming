@@ -13,7 +13,6 @@ import { Consoles } from "./components/Consoles";
 import { Booking } from "./components/Booking";
 import { Snacks } from "./components/Snacks";
 import { Loyalty } from "./components/Loyalty";
-import { Pricing } from "./components/Pricing";
 import { Map } from "./components/Map";
 import { AdminPreview } from "./components/AdminPreview";
 import { Footer } from "./components/Footer";
@@ -32,7 +31,6 @@ function AppLayout() {
           {/* Public routes */}
           <Route path="/" element={<Home />} />
           <Route path="/consoles" element={<Consoles />} />
-          <Route path="/pricing" element={<Pricing />} />
           <Route path="/map" element={<Map />} />
 
           {/* Customer-only routes — admin gets redirected to /admin */}

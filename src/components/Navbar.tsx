@@ -25,7 +25,6 @@ export function Navbar() {
     { name: "Consoles", href: "/consoles", public: true },
     { name: "Booking", href: "/booking", public: false, customerOnly: true },
     { name: "Snacks", href: "/snacks", public: false, customerOnly: true },
-    { name: "Pricing", href: "/pricing", public: true },
     { name: "Rewards", href: "/rewards", public: false, customerOnly: true },
   ];
 

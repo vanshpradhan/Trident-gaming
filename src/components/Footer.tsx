@@ -45,8 +45,7 @@ export function Footer() {
                 { name: "Book a Console", path: "/booking" },
                 { name: "Explore Games", path: "/" },
                 { name: "Snack Menu", path: "/snacks" },
-                { name: "Loyalty Program", path: "/rewards" },
-                { name: "Pricing", path: "/pricing" }
+                { name: "Loyalty Program", path: "/rewards" }
               ].map((link) => (
                 <li key={link.name}>
                   <Link to={link.path} className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium uppercase tracking-widest flex items-center gap-4 group">

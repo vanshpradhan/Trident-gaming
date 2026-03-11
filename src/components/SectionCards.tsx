@@ -1,14 +1,13 @@
 import { motion } from "motion/react";
 import { Link } from "react-router-dom";
-import { Gamepad2, Calendar, Coffee, Tag, Trophy, MapPin } from "lucide-react";
+import { Gamepad2, Calendar, Coffee, Trophy, MapPin } from "lucide-react";
 
 const sections = [
   { title: "Consoles", path: "/consoles", icon: <Gamepad2 className="w-8 h-8"/>, desc: "View available gaming rigs", color: "text-primary" },
   { title: "Booking", path: "/booking", icon: <Calendar className="w-8 h-8"/>, desc: "Reserve your slot", color: "text-secondary" },
   { title: "Snacks", path: "/snacks", icon: <Coffee className="w-8 h-8"/>, desc: "Order food & drinks", color: "text-primary" },
-  { title: "Pricing", path: "/pricing", icon: <Tag className="w-8 h-8"/>, desc: "Check our rates", color: "text-secondary" },
-  { title: "Rewards", path: "/rewards", icon: <Trophy className="w-8 h-8"/>, desc: "Loyalty program", color: "text-primary" },
-  { title: "Location", path: "/map", icon: <MapPin className="w-8 h-8"/>, desc: "Find us", color: "text-secondary" },
+  { title: "Rewards", path: "/rewards", icon: <Trophy className="w-8 h-8"/>, desc: "Loyalty program", color: "text-secondary" },
+  { title: "Location", path: "/map", icon: <MapPin className="w-8 h-8"/>, desc: "Find us", color: "text-primary" },
 ];
 
 export function SectionCards() {
