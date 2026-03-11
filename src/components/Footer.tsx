@@ -6,7 +6,7 @@ export function Footer() {
   return (
     <footer className="relative border-t-2 border-white/10 bg-black pt-24 pb-12 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mb-16">
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="flex items-center gap-3 mb-8 group cursor-pointer">
               <motion.div 
@@ -69,27 +69,6 @@ export function Footer() {
                 </li>
               ))}
             </ul>
-          </div>
-
-          <div>
-            <h4 className="font-display font-black text-white mb-8 uppercase tracking-widest text-xl">Newsletter</h4>
-            <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest mb-6">
-              Subscribe to get updates on new games, tournaments, and exclusive offers.
-            </p>
-            <form className="flex flex-col gap-4">
-              <input
-                type="email"
-                placeholder="ENTER YOUR EMAIL"
-                className="bg-zinc-900 border-2 border-white/10 px-4 py-4 text-sm font-medium uppercase tracking-widest text-white focus:outline-none focus:border-primary w-full transition-all clip-path-zentry-reverse"
-              />
-              <motion.button 
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="bg-primary text-black px-4 py-4 text-sm font-display font-black uppercase tracking-widest transition-colors hover:bg-white clip-path-zentry"
-              >
-                Join Now
-              </motion.button>
-            </form>
           </div>
         </div>
 
