@@ -1,8 +1,7 @@
-# Trident Gaming Café 🔱
+# Trident Gaming Café 
 
 Trident Gaming Café is a premium, modern gaming café management system designed for high-performance gaming centers and VR lounges. It provides a seamless experience for both gamers and administrators.
 
-![Trident Logo](public/trident-logo.png)
 
 ## 🚀 Overview
 
