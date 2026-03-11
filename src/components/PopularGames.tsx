@@ -113,13 +113,7 @@ export function PopularGames() {
                   </div>
                 </div>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 border-2 border-white/10 bg-transparent text-white font-display font-black uppercase tracking-widest group-hover:bg-secondary group-hover:text-black group-hover:border-secondary transition-all duration-300 clip-path-zentry-reverse"
-                >
-                  View Details
-                </motion.button>
+
               </div>
             </motion.div>
           ))}
