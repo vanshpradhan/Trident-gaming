@@ -166,7 +166,28 @@ public class BookingController {
             int newVisits = loyalty.getTotalVisits() + 1;
             loyalty.setTotalVisits(newVisits);
             loyalty.setTotalXp(loyalty.getTotalXp() + (int) Math.floor(totalPrice * 1.5));
-            loyalty.setTier(newVisits >= 20 ? "Elite" : newVisits >= 10 ? "Gold" : newVisits >= 5 ? "Silver" : "Bronze");
+
+            // 6-tier system: upgrade every 10 visits
+            if (newVisits >= 60) {
+                loyalty.setTier("Trident's Hero");
+                loyalty.setStars((newVisits - 60) / 10);
+            } else if (newVisits >= 50) {
+                loyalty.setTier("Diamond");
+                loyalty.setStars(0);
+            } else if (newVisits >= 40) {
+                loyalty.setTier("Platinum");
+                loyalty.setStars(0);
+            } else if (newVisits >= 30) {
+                loyalty.setTier("Gold");
+                loyalty.setStars(0);
+            } else if (newVisits >= 20) {
+                loyalty.setTier("Silver");
+                loyalty.setStars(0);
+            } else {
+                loyalty.setTier("Bronze");
+                loyalty.setStars(0);
+            }
+
             loyaltyRepository.save(loyalty);
         });
 

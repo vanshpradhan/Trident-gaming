@@ -59,6 +59,7 @@ interface Customer {
   total_visits: number;
   total_xp: number;
   tier: string;
+  stars: number;
   total_bookings: number;
   total_spent: number;
 }
@@ -143,6 +144,7 @@ const tierColors: Record<string, string> = {
   Gold: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30",
   Platinum: "text-cyan-400 bg-cyan-400/10 border-cyan-400/30",
   Diamond: "text-purple-400 bg-purple-400/10 border-purple-400/30",
+  "Trident's Hero": "text-primary bg-primary/10 border-primary/30",
 };
 
 function Badge({ status }: { status: string }) {
@@ -225,6 +227,7 @@ export function AdminPreview() {
     "snack:added", "snack:updated", "snack:removed",
     "pricing:added", "pricing:updated", "pricing:removed",
     "game:added", "game:updated", "game:removed",
+    "loyalty:updated",
   ], isLoggedIn && isAdmin);
 
   const handleRefresh = async () => {
@@ -440,7 +443,7 @@ export function AdminPreview() {
             {activeTab === "sessions" && <SessionsTab sessions={sessions} onEndSession={handleEndSession} />}
             {activeTab === "bookings" && <BookingsTab bookings={bookings} />}
             {activeTab === "orders" && <OrdersTab orders={orders} onStatusChange={handleOrderStatus} />}
-            {activeTab === "customers" && <CustomersTab customers={customers} />}
+            {activeTab === "customers" && <CustomersTab customers={customers} onRefresh={loadAllData} />}
             {activeTab === "consoles" && <ConsolesTab consoles={consoles} onStatusChange={handleConsoleStatus} onRefresh={loadAllData} />}
             {activeTab === "snacks" && <SnacksTab snacks={snacks} onRefresh={loadAllData} />}
             {activeTab === "pricing" && <PricingTab plans={pricingPlans} onRefresh={loadAllData} />}
@@ -860,7 +863,21 @@ function OrderActions({ order, onStatusChange }: { order: Order; onStatusChange:
 }
 
 // ─── CUSTOMERS TAB ───────────────────────────────────────────────────
-function CustomersTab({ customers }: { customers: Customer[] }) {
+function CustomersTab({ customers, onRefresh }: { customers: Customer[]; onRefresh: () => Promise<void> }) {
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const handleUpdateVisits = async (userId: string, delta: number) => {
+    setUpdatingId(userId);
+    try {
+      await api.admin.updateVisits(userId, delta);
+      await onRefresh();
+    } catch (err: any) {
+      alert(err.message || "Failed to update visits");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="font-display font-black text-white text-lg uppercase tracking-wider">
@@ -903,9 +920,30 @@ function CustomersTab({ customers }: { customers: Customer[] }) {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{c.phone || "--"}</td>
-                    <td className="px-4 py-3"><TierBadge tier={c.tier} /></td>
+                    <td className="px-4 py-3">
+                      <TierBadge tier={c.tier} />
+                      {c.stars > 0 && <span className="ml-1 text-xs">{"⭐".repeat(c.stars)}</span>}
+                    </td>
                     <td className="px-4 py-3 text-xs font-bold text-white">{c.total_xp.toLocaleString()}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{c.total_visits}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleUpdateVisits(c.id, -1)}
+                          disabled={updatingId === c.id || c.total_visits === 0}
+                          className="w-6 h-6 flex items-center justify-center text-xs font-black bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          −
+                        </button>
+                        <span className="text-xs font-display font-black text-white w-8 text-center">{c.total_visits}</span>
+                        <button
+                          onClick={() => handleUpdateVisits(c.id, 1)}
+                          disabled={updatingId === c.id}
+                          className="w-6 h-6 flex items-center justify-center text-xs font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{c.total_bookings}</td>
                     <td className="px-4 py-3 text-sm font-display font-black text-primary">₹{c.total_spent.toLocaleString("en-IN")}</td>
                     <td className="px-4 py-3 text-[10px] text-muted-foreground">

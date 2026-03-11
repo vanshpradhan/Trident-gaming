@@ -2,9 +2,11 @@ package com.trident.cafe.controller;
 
 import com.trident.cafe.entity.Loyalty;
 import com.trident.cafe.entity.Reward;
+import com.trident.cafe.entity.User;
 import com.trident.cafe.entity.UserReward;
 import com.trident.cafe.repository.LoyaltyRepository;
 import com.trident.cafe.repository.RewardRepository;
+import com.trident.cafe.repository.UserRepository;
 import com.trident.cafe.repository.UserRewardRepository;
 import com.trident.cafe.security.AuthGuard;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +25,7 @@ public class LoyaltyController {
     @Autowired private LoyaltyRepository loyaltyRepository;
     @Autowired private RewardRepository rewardRepository;
     @Autowired private UserRewardRepository userRewardRepository;
+    @Autowired private UserRepository userRepository;
 
     // GET /api/loyalty - Current user's loyalty info
     @GetMapping
@@ -63,15 +66,11 @@ public class LoyaltyController {
             return m;
         }).toList();
 
-        // Progress to next reward
-        Optional<Map<String, Object>> nextReward = rewardsWithStatus.stream()
-            .filter(r -> "locked".equals(r.get("user_status")))
-            .findFirst();
-        int maxVisits = nextReward.map(r -> (int) r.get("visits_required"))
-            .orElse(allRewards.isEmpty() ? 10 : allRewards.get(allRewards.size() - 1).getVisitsRequired());
-
+        // Progress to next tier (every 10 visits)
         int current = loyalty.getTotalVisits();
-        int pct = maxVisits > 0 ? Math.min(100, (int) Math.round((double) current / maxVisits * 100)) : 100;
+        int nextTierAt = ((current / 10) + 1) * 10;
+        int progressInTier = current % 10;
+        int pct = (int) Math.round((double) progressInTier / 10 * 100);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", loyalty.getId());
@@ -79,10 +78,11 @@ public class LoyaltyController {
         result.put("total_visits", loyalty.getTotalVisits());
         result.put("total_xp", loyalty.getTotalXp());
         result.put("tier", loyalty.getTier());
+        result.put("stars", loyalty.getStars());
         result.put("active_boosters", loyalty.getActiveBoosters());
         result.put("updated_at", loyalty.getUpdatedAt());
         result.put("rewards", rewardsWithStatus);
-        result.put("progress", Map.of("current", current, "target", maxVisits, "percentage", pct));
+        result.put("progress", Map.of("current", progressInTier, "target", 10, "percentage", pct, "next_tier_at", nextTierAt));
 
         return ResponseEntity.ok(result);
     }
@@ -91,6 +91,27 @@ public class LoyaltyController {
     @GetMapping("/rewards")
     public ResponseEntity<?> rewards() {
         return ResponseEntity.ok(rewardRepository.findAllByOrderByVisitsRequiredAsc());
+    }
+
+    // GET /api/loyalty/leaderboard - Top 5 customers by visits (public)
+    @GetMapping("/leaderboard")
+    public ResponseEntity<?> leaderboard() {
+        List<Loyalty> top5 = loyaltyRepository.findTop5ByOrderByTotalVisitsDesc();
+        List<Map<String, Object>> board = new ArrayList<>();
+        for (Loyalty l : top5) {
+            Map<String, Object> entry = new LinkedHashMap<>();
+            // Look up user name
+            String name = userRepository.findById(l.getUserId())
+                .map(User::getName)
+                .orElse("Unknown");
+            entry.put("name", name);
+            entry.put("total_visits", l.getTotalVisits());
+            entry.put("tier", l.getTier());
+            entry.put("stars", l.getStars());
+            entry.put("total_xp", l.getTotalXp());
+            board.add(entry);
+        }
+        return ResponseEntity.ok(board);
     }
 
     // POST /api/loyalty/redeem/:rewardId

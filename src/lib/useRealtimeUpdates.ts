@@ -21,7 +21,8 @@ export type SSEEventType =
   | "pricing:removed"
   | "game:added"
   | "game:updated"
-  | "game:removed";
+  | "game:removed"
+  | "loyalty:updated";
 
 type EventHandler = (data: any) => void;
 
@@ -79,6 +80,10 @@ export function useRealtimeUpdates(
       "pricing:added",
       "pricing:updated",
       "pricing:removed",
+      "game:added",
+      "game:updated",
+      "game:removed",
+      "loyalty:updated",
     ];
 
     for (const eventType of eventTypes) {

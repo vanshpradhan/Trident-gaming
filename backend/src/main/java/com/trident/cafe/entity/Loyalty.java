@@ -30,8 +30,11 @@ public class Loyalty {
     @Column(name = "total_xp", nullable = false)
     private Integer totalXp = 0;
 
-    @Column(nullable = false, length = 10)
-    private String tier = "Bronze"; // 'Bronze' | 'Silver' | 'Gold' | 'Elite'
+    @Column(nullable = false, length = 20)
+    private String tier = "Bronze"; // Bronze | Silver | Gold | Platinum | Diamond | Trident's Hero
+
+    @Column(nullable = false)
+    private Integer stars = 0;
 
     @Column(name = "active_boosters", nullable = false)
     private Integer activeBoosters = 0;

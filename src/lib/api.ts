@@ -170,6 +170,7 @@ export const api = {
   loyalty: {
     get: () => request<any>("/loyalty"),
     rewards: () => request<any[]>("/loyalty/rewards"),
+    leaderboard: () => request<any[]>("/loyalty/leaderboard"),
     redeem: (rewardId: string) =>
       request(`/loyalty/redeem/${rewardId}`, { method: "POST" }),
   },
@@ -246,6 +247,13 @@ export const api = {
       }),
     removeGame: (id: number) =>
       request(`/admin/games/${id}`, { method: "DELETE" }),
+
+    // Visit controls
+    updateVisits: (userId: string, delta: number) =>
+      request<any>(`/admin/customers/${userId}/visits`, {
+        method: "PATCH",
+        body: JSON.stringify({ delta }),
+      }),
   },
 
   // --- Games (public) ---

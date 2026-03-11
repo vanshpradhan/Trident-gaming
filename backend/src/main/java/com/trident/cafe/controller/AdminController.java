@@ -220,8 +220,9 @@ public class AdminController {
                     m.put("total_visits", l.getTotalVisits());
                     m.put("total_xp", l.getTotalXp());
                     m.put("tier", l.getTier());
+                    m.put("stars", l.getStars());
                 },
-                () -> { m.put("total_visits", 0); m.put("total_xp", 0); m.put("tier", "Bronze"); }
+                () -> { m.put("total_visits", 0); m.put("total_xp", 0); m.put("tier", "Bronze"); m.put("stars", 0); }
             );
             List<Booking> userBookings = bookingRepository.findByUserIdOrderByDateDescTimeSlotDesc(u.getId());
             m.put("total_bookings", userBookings.size());
@@ -231,6 +232,53 @@ public class AdminController {
             return m;
         }).sorted(Comparator.comparingLong(m -> -((Long) m.get("total_spent"))))
           .toList();
+    }
+
+    // PATCH /api/admin/customers/:id/visits
+    @PatchMapping("/customers/{id}/visits")
+    public ResponseEntity<?> updateVisits(@PathVariable String id,
+                                           @RequestBody Map<String, Object> body,
+                                           HttpServletRequest req, HttpServletResponse res) throws IOException {
+        if (!isAdmin(req, res)) return null;
+
+        int delta = body.get("delta") instanceof Number ? ((Number) body.get("delta")).intValue() : 0;
+        if (delta == 0)
+            return ResponseEntity.badRequest().body(Map.of("error", "delta must be non-zero"));
+
+        Optional<Loyalty> opt = loyaltyRepository.findByUserId(id);
+        if (opt.isEmpty())
+            return ResponseEntity.status(404).body(Map.of("error", "Loyalty record not found"));
+
+        Loyalty loyalty = opt.get();
+        int newVisits = Math.max(0, loyalty.getTotalVisits() + delta);
+        loyalty.setTotalVisits(newVisits);
+
+        // Recalculate tier and stars
+        if (newVisits >= 60) {
+            loyalty.setTier("Trident's Hero");
+            loyalty.setStars((newVisits - 60) / 10);
+        } else if (newVisits >= 50) {
+            loyalty.setTier("Diamond");
+            loyalty.setStars(0);
+        } else if (newVisits >= 40) {
+            loyalty.setTier("Platinum");
+            loyalty.setStars(0);
+        } else if (newVisits >= 30) {
+            loyalty.setTier("Gold");
+            loyalty.setStars(0);
+        } else if (newVisits >= 20) {
+            loyalty.setTier("Silver");
+            loyalty.setStars(0);
+        } else {
+            loyalty.setTier("Bronze");
+            loyalty.setStars(0);
+        }
+
+        loyaltyRepository.save(loyalty);
+
+        sseService.broadcast("loyalty:updated", Map.of("user_id", id, "total_visits", newVisits, "tier", loyalty.getTier(), "stars", loyalty.getStars()));
+
+        return ResponseEntity.ok(Map.of("total_visits", newVisits, "tier", loyalty.getTier(), "stars", loyalty.getStars()));
     }
 
     // POST /api/admin/sessions/:id/end
