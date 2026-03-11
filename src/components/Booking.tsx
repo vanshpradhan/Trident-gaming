@@ -108,7 +108,9 @@ export function Booking() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground uppercase tracking-widest text-sm">Duration</span>
-              <span className="font-display font-black text-white">{booking.duration_hours} {booking.duration_hours === 1 ? 'hr' : 'hrs'}</span>
+              <span className="font-display font-black text-white">
+                {booking.duration_hours === 0.5 ? "30 MINS" : `${booking.duration_hours} ${booking.duration_hours === 1 ? 'hr' : 'hrs'}`}
+              </span>
             </div>
             <div className="flex justify-between pt-4 border-t-2 border-white/10">
               <span className="text-muted-foreground uppercase tracking-widest text-sm">Total</span>
@@ -168,7 +170,10 @@ export function Booking() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => setConsoleType("ps5")}
+                onClick={() => {
+                  setConsoleType("ps5");
+                  if (duration === 0.5) setDuration(1);
+                }}
                 className={`p-6 border-2 transition-all duration-300 clip-path-zentry ${
                   consoleType === "ps5"
                     ? "bg-primary border-primary text-black"
@@ -294,7 +299,7 @@ export function Booking() {
               Duration
             </h3>
             <div className="flex flex-wrap items-center gap-4">
-              {[1, 2, 3, 4, 5].map((num) => (
+              {(consoleType === "psvr2" ? [0.5, 1, 2, 3, 4, 5] : [1, 2, 3, 4, 5]).map((num) => (
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -306,7 +311,7 @@ export function Booking() {
                       : "bg-black border-white/10 text-white hover:border-primary"
                   }`}
                 >
-                  {num} {num === 1 ? 'HR' : 'HRS'}
+                  {num === 0.5 ? "30 MINS" : `${num} ${num === 1 ? 'HR' : 'HRS'}`}
                 </motion.button>
               ))}
             </div>
@@ -345,7 +350,9 @@ export function Booking() {
               )}
               <div className="flex justify-between items-center pb-6 border-b-2 border-white/10">
                 <span className="text-muted-foreground font-medium uppercase tracking-widest">Duration</span>
-                <span className="font-display font-black text-xl text-white uppercase tracking-wider">{duration} {duration === 1 ? 'hr' : 'hrs'}</span>
+                <span className="font-display font-black text-xl text-white uppercase tracking-wider">
+                  {duration === 0.5 ? "30 MINS" : `${duration} ${duration === 1 ? 'hr' : 'hrs'}`}
+                </span>
               </div>
               <div className="flex justify-between items-center pt-6">
                 <span className="text-xl text-muted-foreground font-medium uppercase tracking-widest">Total</span>
