@@ -26,7 +26,7 @@ export function Hero() {
       
       {/* Massive Background Text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-        <h1 className="text-[25vw] font-display font-black text-white/5 leading-none tracking-tighter uppercase whitespace-nowrap">
+        <h1 className="text-[25vw] font-display font-black text-white/5 leading-none tracking-tight uppercase whitespace-nowrap">
           TRIDENT
         </h1>
       </div>
@@ -56,14 +56,14 @@ export function Hero() {
             <span className="animate-ping absolute inline-flex h-full w-full bg-primary opacity-75"></span>
             <span className="relative inline-flex h-2 w-2 bg-primary"></span>
           </span>
-          Enter the Metagame
+          Enter the home of gamers
         </motion.div>
 
         <motion.h1
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-          className="mb-6 text-6xl md:text-8xl lg:text-[10rem] font-display font-black tracking-tighter uppercase leading-[0.85] text-white mix-blend-difference"
+          className="mb-6 text-6xl md:text-8xl lg:text-[10rem] font-display font-black tracking-tight uppercase leading-[0.9] text-white mix-blend-difference"
         >
           TRIDENT<br/>
           <span className="text-primary">GAMING</span>
@@ -80,10 +80,6 @@ export function Hero() {
               <Gamepad2 className="mr-3 h-6 w-6" />
               Book a Console
             </span>
-          </Link>
-          
-          <Link to="/consoles" className="group relative inline-flex items-center justify-center overflow-hidden border-2 border-white bg-transparent px-10 py-5 font-display text-xl font-black text-white uppercase tracking-wider transition-all duration-300 hover:bg-white hover:text-black clip-path-zentry-reverse">
-            <span className="relative z-10">Explore Consoles</span>
           </Link>
         </motion.div>
       </div>

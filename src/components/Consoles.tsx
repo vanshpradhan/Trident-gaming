@@ -44,7 +44,7 @@ export function Consoles() {
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-5xl md:text-7xl font-display font-black mb-4 uppercase tracking-tighter text-white"
+          className="text-5xl md:text-7xl font-display font-black mb-4 uppercase tracking-tight text-white"
         >
           Console <span className="text-primary">Availability</span>
         </motion.h2>

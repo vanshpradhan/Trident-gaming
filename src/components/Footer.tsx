@@ -8,18 +8,18 @@ export function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
           <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center gap-3 mb-8 group cursor-pointer">
+            <Link to="/" className="flex items-center gap-3 mb-8 group cursor-pointer">
               <motion.div 
                 whileHover={{ rotate: 90, scale: 1.1 }}
                 transition={{ duration: 0.3 }}
-                className="w-12 h-12 bg-primary flex items-center justify-center clip-path-zentry"
+                className="w-12 h-12 bg-transparent flex items-center justify-center overflow-hidden"
               >
-                <Gamepad2 className="w-7 h-7 text-black" />
+                <img src="/logo.png" alt="Trident" className="w-10 h-10 object-contain" />
               </motion.div>
-              <span className="font-display font-black text-3xl tracking-tighter text-white uppercase group-hover:text-primary transition-colors">
+              <span className="font-display text-4xl font-black text-white tracking-tight uppercase group-hover:text-primary transition-colors">
                 TRIDENT
               </span>
-            </div>
+            </Link>
             <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest leading-relaxed mb-8">
               The ultimate destination for gamers. High-end consoles, premium snacks, and an atmosphere built for champions.
             </p>

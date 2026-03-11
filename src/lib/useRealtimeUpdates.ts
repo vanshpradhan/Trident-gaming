@@ -18,7 +18,10 @@ export type SSEEventType =
   | "snack:removed"
   | "pricing:added"
   | "pricing:updated"
-  | "pricing:removed";
+  | "pricing:removed"
+  | "game:added"
+  | "game:updated"
+  | "game:removed";
 
 type EventHandler = (data: any) => void;
 

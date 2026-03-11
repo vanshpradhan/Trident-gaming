@@ -5,7 +5,7 @@ import {
   Settings, Users, ShoppingBag, Activity, Monitor, Bell, Loader2, Lock,
   Clock, AlertTriangle, CheckCircle2, XCircle, RefreshCw, Gamepad2,
   CalendarDays, IndianRupee, TrendingUp, Eye, ChevronDown, LogOut, ArrowLeft,
-  Plus, Trash2, Edit3, X, Tag, UtensilsCrossed, DollarSign, Save
+  Plus, Trash2, Edit3, X, Tag, UtensilsCrossed, DollarSign, Save, Star
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -106,7 +106,19 @@ interface PricingPlan {
   created_at: string;
 }
 
-type Tab = "overview" | "sessions" | "bookings" | "orders" | "customers" | "consoles" | "snacks" | "pricing";
+interface Game {
+  id: number;
+  title: string;
+  image: string;
+  genre: string;
+  rating: string;
+  players: string;
+  display_order: number;
+  active: boolean;
+  created_at: string;
+}
+
+type Tab = "overview" | "sessions" | "bookings" | "orders" | "customers" | "consoles" | "snacks" | "pricing" | "games";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 const statusColors: Record<string, string> = {
@@ -166,10 +178,11 @@ export function AdminPreview() {
   const [consoles, setConsoles] = useState<Console[]>([]);
   const [snacks, setSnacks] = useState<Snack[]>([]);
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
 
   const loadAllData = useCallback(async () => {
     try {
-      const [statsData, sessionsData, bookingsData, ordersData, customersData, consolesData, snacksData, pricingData] =
+      const [statsData, sessionsData, bookingsData, ordersData, customersData, consolesData, snacksData, pricingData, gamesData] =
         await Promise.all([
           api.admin.stats(),
           api.admin.sessions(),
@@ -179,6 +192,7 @@ export function AdminPreview() {
           api.consoles.list(),
           api.admin.snacks(),
           api.admin.pricing(),
+          api.admin.games(),
         ]);
       setStats(statsData);
       setSessions(sessionsData);
@@ -188,6 +202,7 @@ export function AdminPreview() {
       setConsoles(consolesData);
       setSnacks(snacksData);
       setPricingPlans(pricingData);
+      setGames(gamesData);
     } catch (err) {
       console.error("Admin data load failed:", err);
     }
@@ -209,6 +224,7 @@ export function AdminPreview() {
     "session:ended",
     "snack:added", "snack:updated", "snack:removed",
     "pricing:added", "pricing:updated", "pricing:removed",
+    "game:added", "game:updated", "game:removed",
   ], isLoggedIn && isAdmin);
 
   const handleRefresh = async () => {
@@ -309,6 +325,7 @@ export function AdminPreview() {
     { icon: <Gamepad2 className="w-5 h-5" />, label: "Consoles", key: "consoles", count: consoles.length },
     { icon: <UtensilsCrossed className="w-5 h-5" />, label: "Snacks", key: "snacks", count: snacks.length },
     { icon: <Tag className="w-5 h-5" />, label: "Pricing", key: "pricing", count: pricingPlans.length },
+    { icon: <Gamepad2 className="w-5 h-5" />, label: "Games", key: "games", count: games.length },
   ];
 
   // ─── Dashboard Layout ─────────────────────────────────────────────
@@ -427,6 +444,7 @@ export function AdminPreview() {
             {activeTab === "consoles" && <ConsolesTab consoles={consoles} onStatusChange={handleConsoleStatus} onRefresh={loadAllData} />}
             {activeTab === "snacks" && <SnacksTab snacks={snacks} onRefresh={loadAllData} />}
             {activeTab === "pricing" && <PricingTab plans={pricingPlans} onRefresh={loadAllData} />}
+            {activeTab === "games" && <GamesTab games={games} onRefresh={loadAllData} />}
           </div>
         </div>
       </div>
@@ -1548,10 +1566,234 @@ function PricingTab({ plans, onRefresh }: { plans: PricingPlan[]; onRefresh: () 
                       <Edit3 className="w-3 h-3" /> Edit
                     </button>
                     <button onClick={() => handleRemove(plan.id)} disabled={removing === plan.id} className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50">
-                      {removing === plan.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />} Remove
+          {removing === plan.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />} Remove
+                     </button>
+                   </div>
+                 </div>
+               )}
+             </div>
+           ))}
+         </div>
+       )}
+     </div>
+   );
+ }
+
+// ─── GAMES TAB ───────────────────────────────────────────────────────
+function GamesTab({ games, onRefresh }: { games: Game[]; onRefresh: () => Promise<void> }) {
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState<number | null>(null);
+  const [form, setForm] = useState({ title: "", image: "", genre: "Action", rating: "4.5", players: "1", display_order: "0" });
+  const [editForm, setEditForm] = useState({ title: "", image: "", genre: "", rating: "", players: "", display_order: "", active: true });
+
+  const genres = ["Action", "RPG", "FPS", "Sports", "Fighting", "Open World", "Adventure", "Racing", "Horror", "Simulation"];
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdding(true);
+    try {
+      await api.admin.addGame({
+        title: form.title,
+        image: form.image,
+        genre: form.genre,
+        rating: form.rating,
+        players: form.players,
+        display_order: parseInt(form.display_order) || 0,
+        active: true,
+      });
+      setForm({ title: "", image: "", genre: "Action", rating: "4.5", players: "1", display_order: "0" });
+      setShowAddForm(false);
+      await onRefresh();
+    } catch (err: any) {
+      alert(err.message || "Failed to add game");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleEdit = async (id: number) => {
+    setSaving(true);
+    try {
+      await api.admin.editGame(id, {
+        title: editForm.title,
+        image: editForm.image,
+        genre: editForm.genre,
+        rating: editForm.rating,
+        players: editForm.players,
+        display_order: parseInt(editForm.display_order) || 0,
+        active: editForm.active,
+      });
+      setEditingId(null);
+      await onRefresh();
+    } catch (err: any) {
+      alert(err.message || "Failed to update game");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = async (id: number) => {
+    if (!confirm("Remove this game? This cannot be undone.")) return;
+    setRemoving(id);
+    try {
+      await api.admin.removeGame(id);
+      await onRefresh();
+    } catch (err: any) {
+      alert(err.message || "Failed to remove game");
+    } finally {
+      setRemoving(null);
+    }
+  };
+
+  const startEdit = (game: Game) => {
+    setEditingId(game.id);
+    setEditForm({
+      title: game.title,
+      image: game.image,
+      genre: game.genre,
+      rating: game.rating,
+      players: game.players,
+      display_order: game.display_order.toString(),
+      active: game.active,
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display font-black text-white text-lg uppercase tracking-wider">
+          Games Management <span className="text-secondary">({games.length})</span>
+        </h2>
+        <button
+          onClick={() => { setShowAddForm(!showAddForm); setEditingId(null); }}
+          className={`flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase tracking-widest border transition-colors ${
+            showAddForm
+              ? "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500 hover:text-white"
+              : "bg-secondary/10 text-secondary border-secondary/30 hover:bg-secondary hover:text-black"
+          }`}
+        >
+          {showAddForm ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+          {showAddForm ? "Cancel" : "Add Game"}
+        </button>
+      </div>
+
+      {/* Add Game Form */}
+      {showAddForm && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-zinc-950 border border-secondary/30 p-6"
+        >
+          <h3 className="font-display font-black text-white uppercase tracking-wider text-sm mb-4">Add New Game</h3>
+          <form onSubmit={handleAdd} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="sm:col-span-2 lg:col-span-2">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Title *</label>
+              <input type="text" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Spider-Man 2" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-secondary/50 outline-none" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Genre *</label>
+              <select value={form.genre} onChange={(e) => setForm({ ...form, genre: e.target.value })} className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white focus:border-secondary/50 outline-none">
+                {genres.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Image URL *</label>
+              <input type="url" required value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="https://..." className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-secondary/50 outline-none" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Rating (e.g. 4.9)</label>
+              <input type="text" value={form.rating} onChange={(e) => setForm({ ...form, rating: e.target.value })} placeholder="4.5" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-secondary/50 outline-none" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Players (e.g. 1-4)</label>
+              <input type="text" value={form.players} onChange={(e) => setForm({ ...form, players: e.target.value })} placeholder="1-4" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-secondary/50 outline-none" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Display Order</label>
+              <input type="number" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} placeholder="0" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-secondary/50 outline-none" />
+            </div>
+            <div className="sm:col-span-2 lg:col-span-3 flex justify-end">
+              <button type="submit" disabled={adding} className="flex items-center gap-2 px-6 py-2 bg-secondary text-black font-black uppercase tracking-widest text-xs hover:bg-white transition-colors disabled:opacity-50">
+                {adding ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                Add Game
+              </button>
+            </div>
+          </form>
+        </motion.div>
+      )}
+
+      {/* Games List */}
+      {games.length === 0 ? (
+        <div className="bg-zinc-950 border border-white/10 p-12 text-center">
+          <Gamepad2 className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground text-xs uppercase tracking-widest">No games yet. Add one above.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {games.map((game) => (
+            <div key={game.id} className={`bg-zinc-950 border overflow-hidden group ${game.active ? "border-white/10" : "border-white/5 opacity-60"}`}>
+              {editingId === game.id ? (
+                // Edit mode
+                <div className="p-4 space-y-3">
+                  <input type="text" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} placeholder="Title" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white focus:border-secondary/50 outline-none" />
+                  <input type="url" value={editForm.image} onChange={(e) => setEditForm({ ...editForm, image: e.target.value })} placeholder="Image URL" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white focus:border-secondary/50 outline-none" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select value={editForm.genre} onChange={(e) => setEditForm({ ...editForm, genre: e.target.value })} className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white focus:border-secondary/50 outline-none">
+                      {genres.map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <input type="text" value={editForm.rating} onChange={(e) => setEditForm({ ...editForm, rating: e.target.value })} placeholder="Rating" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white focus:border-secondary/50 outline-none" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="text" value={editForm.players} onChange={(e) => setEditForm({ ...editForm, players: e.target.value })} placeholder="Players" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white focus:border-secondary/50 outline-none" />
+                    <input type="number" value={editForm.display_order} onChange={(e) => setEditForm({ ...editForm, display_order: e.target.value })} placeholder="Order" className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white focus:border-secondary/50 outline-none" />
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={editForm.active} onChange={(e) => setEditForm({ ...editForm, active: e.target.checked })} className="w-4 h-4 accent-secondary" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Active (shown on site)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleEdit(game.id)} disabled={saving} className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-50">
+                      {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />} Save
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="flex-1 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 hover:text-white transition-colors">
+                      Cancel
                     </button>
                   </div>
                 </div>
+              ) : (
+                // Display mode
+                <>
+                  <div className="h-32 overflow-hidden bg-zinc-900 relative">
+                    <img src={game.image} alt={game.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                    {!game.active && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-white/60 border border-white/20 px-2 py-0.5">Hidden</span>
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 bg-black/70 border border-primary/50 text-primary text-[10px] font-bold">
+                      <Star className="w-3 h-3 fill-current" />
+                      {game.rating}
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h4 className="text-sm font-display font-black text-white mb-2 truncate">{game.title}</h4>
+                    <div className="flex items-center gap-3 mb-3 text-[10px] text-muted-foreground uppercase tracking-widest">
+                      <span className="flex items-center gap-1"><Gamepad2 className="w-3 h-3 text-primary" />{game.genre}</span>
+                      <span className="flex items-center gap-1"><Users className="w-3 h-3 text-secondary" />{game.players}</span>
+                    </div>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => startEdit(game)} className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 text-[9px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-colors">
+                        <Edit3 className="w-3 h-3" /> Edit
+                      </button>
+                      <button onClick={() => handleRemove(game.id)} disabled={removing === game.id} className="px-2 py-1.5 text-[9px] font-black uppercase tracking-widest bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-red-500 hover:text-white hover:border-red-500 transition-colors disabled:opacity-50" title="Remove">
+                        {removing === game.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           ))}

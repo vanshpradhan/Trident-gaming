@@ -5,7 +5,7 @@ export function Marquee() {
     <div className="relative w-full overflow-hidden bg-primary py-4 -rotate-2 scale-110 z-20">
       <div className="flex whitespace-nowrap">
         <motion.div
-          className="flex gap-8 text-black font-display font-black text-4xl uppercase tracking-widest"
+          className="flex gap-8 text-black font-display font-black text-4xl uppercase tracking-wide"
           animate={{ x: [0, -1035] }}
           transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
         >

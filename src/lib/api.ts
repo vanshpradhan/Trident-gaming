@@ -231,6 +231,26 @@ export const api = {
       }),
     removePricing: (id: string) =>
       request(`/admin/pricing/${id}`, { method: "DELETE" }),
+
+    // Games CRUD
+    games: () => request<any[]>("/admin/games"),
+    addGame: (data: { title: string; image: string; genre: string; rating?: string; players?: string; display_order?: number; active?: boolean }) =>
+      request<any>("/admin/games", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    editGame: (id: number, data: { title?: string; image?: string; genre?: string; rating?: string; players?: string; display_order?: number; active?: boolean }) =>
+      request<any>(`/admin/games/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
+    removeGame: (id: number) =>
+      request(`/admin/games/${id}`, { method: "DELETE" }),
+  },
+
+  // --- Games (public) ---
+  games: {
+    list: () => request<any[]>("/games"),
   },
 
   // --- Health ---

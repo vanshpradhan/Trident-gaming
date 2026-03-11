@@ -54,11 +54,11 @@ export function Navbar() {
               <motion.div 
                 whileHover={{ rotate: 90, scale: 1.1 }}
                 transition={{ duration: 0.3 }}
-                className="w-12 h-12 bg-primary flex items-center justify-center clip-path-zentry"
+                className="w-12 h-12 bg-transparent flex items-center justify-center overflow-hidden"
               >
-                <Gamepad2 className="w-7 h-7 text-black" />
+                <img src="/logo.png" alt="Trident" className="w-10 h-10 object-contain" />
               </motion.div>
-              <span className="font-display font-black text-3xl tracking-tighter text-white uppercase group-hover:text-primary transition-colors">
+              <span className="font-display text-4xl font-black text-white tracking-tight uppercase group-hover:text-primary transition-colors duration-300">
                 TRIDENT
               </span>
             </Link>
