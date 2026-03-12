@@ -1,16 +1,30 @@
+# Dependencies
 node_modules/
-build/
+
+# Build outputs
 dist/
+build/
 coverage/
-.DS_Store
+
+# Logs
 *.log
-.env*
+
+# Environment variables (never commit secrets)
+.env
 !.env.example
+
+# Database files (local dev only)
 *.db
 *.db-shm
 *.db-wal
+trident-h2*
+
+# Java build artifacts
 backend/target/
-# Do NOT ignore backend/.mvn — Maven wrapper is needed for Docker/CI build
-*.class
-*.jar
+
+# OS / Editor
+.DS_Store
 nul
+.vscode/
+
+# Misc

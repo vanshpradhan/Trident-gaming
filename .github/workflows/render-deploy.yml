@@ -1,0 +1,19 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Trigger Render Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          curl -s "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+        # Set RENDER_DEPLOY_HOOK_URL in GitHub repo secrets:
+        # GitHub repo → Settings → Secrets → Actions → New secret
+        # Get the hook URL from: Render dashboard → your service → Settings → Deploy Hook

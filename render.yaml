@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: trident-gaming-cafe
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore
+    plan: free
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: TOKEN_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        value: https://trident-gaming-cafe.onrender.com
+      - key: PGHOST
+        fromDatabase:
+          name: trident-db
+          property: host
+      - key: PGPORT
+        fromDatabase:
+          name: trident-db
+          property: port
+      - key: PGDATABASE
+        fromDatabase:
+          name: trident-db
+          property: database
+      - key: PGUSER
+        fromDatabase:
+          name: trident-db
+          property: user
+      - key: PGPASSWORD
+        fromDatabase:
+          name: trident-db
+          property: password
+
+databases:
+  - name: trident-db
+    region: singapore
+    plan: free
+    databaseName: trident
+    user: trident
