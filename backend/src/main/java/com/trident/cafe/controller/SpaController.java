@@ -9,23 +9,25 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Catches all non-API routes and returns the React index.html so that
- * React Router can handle client-side navigation (SPA fallback).
+ * Catches all non-API, non-static routes and returns the React index.html
+ * so that React Router can handle client-side navigation (SPA fallback).
+ *
+ * Spring Boot 3.x PathPatternParser does not allow patterns like
+ * "/**\/{path:[^\.]*}" — use a single "/{*path}" wildcard instead and
+ * delegate only when the path doesn't look like a static asset.
  */
 @RestController
 public class SpaController {
 
-    @GetMapping(value = "/{path:[^\\.]*}", produces = MediaType.TEXT_HTML_VALUE)
+    @GetMapping(value = "/{*path}", produces = MediaType.TEXT_HTML_VALUE)
     public ResponseEntity<Resource> spa(HttpServletRequest request) {
-        Resource index = new ClassPathResource("static/index.html");
-        return ResponseEntity.ok()
-                .contentType(MediaType.TEXT_HTML)
-                .body(index);
-    }
+        String path = request.getRequestURI();
 
-    // Also handle nested paths (e.g. /admin/dashboard)
-    @GetMapping(value = "/**/{path:[^\\.]*}", produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<Resource> spaDeep(HttpServletRequest request) {
+        // Let the servlet container handle actual static files and API calls
+        if (path.startsWith("/api/") || path.contains(".")) {
+            return ResponseEntity.notFound().build();
+        }
+
         Resource index = new ClassPathResource("static/index.html");
         return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_HTML)
