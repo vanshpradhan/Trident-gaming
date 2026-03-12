@@ -5,9 +5,34 @@ import { format, addDays } from "date-fns";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 
+// Convert "HH:MM" (24h from <input type="time">) to "H:MM AM/PM"
+function to12Hour(value: string): string {
+  if (!value) return "";
+  const [hStr, mStr] = value.split(":");
+  let h = parseInt(hStr, 10);
+  const m = mStr;
+  const meridiem = h >= 12 ? "PM" : "AM";
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return `${h}:${m} ${meridiem}`;
+}
+
+// Convert "H:MM AM/PM" back to "HH:MM" for the input value
+function to24Hour(value: string): string {
+  if (!value) return "";
+  const match = value.match(/^(\d{1,2}):(\d{2}) (AM|PM)$/);
+  if (!match) return "";
+  let h = parseInt(match[1], 10);
+  const m = match[2];
+  const meridiem = match[3];
+  if (meridiem === "AM" && h === 12) h = 0;
+  else if (meridiem === "PM" && h !== 12) h += 12;
+  return `${String(h).padStart(2, "0")}:${m}`;
+}
+
 export function Booking() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string>("");
   const [duration, setDuration] = useState<number>(1);
   const [players, setPlayers] = useState<number>(1);
   const [consoleType, setConsoleType] = useState<"ps5" | "psvr2">("ps5");
@@ -17,10 +42,6 @@ export function Booking() {
   const { isLoggedIn, isAdmin } = useAuth();
 
   const dates = Array.from({ length: 7 }).map((_, i) => addDays(new Date(), i));
-  const times = [
-    "10:00 AM", "11:00 AM", "12:00 PM", "01:00 PM", "02:00 PM", "03:00 PM", "04:00 PM",
-    "05:00 PM", "06:00 PM", "07:00 PM", "08:00 PM", "09:00 PM", "10:00 PM", "11:00 PM"
-  ];
 
   const calculatePrice = () => {
     let basePrice = 0;
@@ -44,7 +65,6 @@ export function Booking() {
       return;
     }
     if (!selectedTime) return;
-
     setLoading(true);
     setError("");
 
@@ -119,7 +139,7 @@ export function Booking() {
           </div>
 
           <button
-            onClick={() => { setBooking(null); setSelectedTime(null); }}
+            onClick={() => { setBooking(null); setSelectedTime(""); }}
             className="w-full py-5 bg-primary text-black font-display font-black text-xl uppercase tracking-widest hover:bg-white transition-colors clip-path-zentry-reverse"
           >
             Book Another Session
@@ -232,30 +252,20 @@ export function Booking() {
               ))}
             </motion.div>
 
-            <motion.div 
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-              className="grid grid-cols-3 sm:grid-cols-4 gap-4"
-            >
-              {times.map((time) => (
-                <motion.button
-                  variants={itemVariants}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  key={time}
-                  onClick={() => setSelectedTime(time)}
-                  className={`py-4 border-2 text-sm font-display font-black uppercase tracking-widest transition-all duration-300 clip-path-zentry ${
-                    selectedTime === time
-                      ? "bg-primary text-black border-primary"
-                      : "bg-black border-white/10 text-white hover:border-primary"
-                  }`}
-                >
-                  {time}
-                </motion.button>
-              ))}
-            </motion.div>
+            <div className="flex flex-col gap-4">
+                <input
+                  type="time"
+                  value={to24Hour(selectedTime)}
+                  onChange={(e) => setSelectedTime(to12Hour(e.target.value))}
+                  className="w-full bg-black border-2 border-white/10 text-white font-display font-black text-2xl px-6 py-4 focus:outline-none focus:border-primary transition-colors clip-path-zentry [color-scheme:dark]"
+                  style={{ colorScheme: "dark" }}
+                />
+                {selectedTime && (
+                  <div className="bg-primary/10 border-2 border-primary/30 px-6 py-4 text-center">
+                    <span className="text-primary font-display font-black text-xl uppercase tracking-widest">{selectedTime}</span>
+                  </div>
+                )}
+              </div>
           </div>
 
           {/* Player Count */}

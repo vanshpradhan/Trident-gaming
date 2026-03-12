@@ -24,11 +24,9 @@ import java.util.regex.Pattern;
 @RequestMapping("/api/bookings")
 public class BookingController {
 
-    private static final List<String> VALID_TIME_SLOTS = List.of(
-        "10:00 AM", "12:00 PM", "02:00 PM", "04:00 PM", "06:00 PM", "08:00 PM", "10:00 PM"
-    );
     private static final List<String> VALID_CONSOLE_TYPES = List.of("ps5", "psvr2");
     private static final Pattern DATE_RE = Pattern.compile("^\\d{4}-\\d{2}-\\d{2}$");
+    private static final Pattern TIME_RE = Pattern.compile("^(1[0-2]|0?[1-9]):[0-5][0-9] (AM|PM)$");
 
     @Autowired private BookingRepository bookingRepository;
     @Autowired private ConsoleRepository consoleRepository;
@@ -66,11 +64,6 @@ public class BookingController {
             ? bookingRepository.countBookedSlotsByDateAndType(date, console_type)
             : bookingRepository.countBookedSlotsByDate(date);
 
-        Map<String, Long> bookedMap = new HashMap<>();
-        for (Object[] row : rawSlots) {
-            bookedMap.put((String) row[0], ((Number) row[1]).longValue());
-        }
-
         // Count total available consoles of the requested type
         int totalConsoles;
         if (console_type != null) {
@@ -80,8 +73,9 @@ public class BookingController {
             totalConsoles = consoleRepository.countAllNotMaintenance();
         }
 
-        List<Map<String, Object>> availability = VALID_TIME_SLOTS.stream().map(slot -> {
-            long booked = bookedMap.getOrDefault(slot, 0L);
+        List<Map<String, Object>> availability = rawSlots.stream().map(row -> {
+            String slot = (String) row[0];
+            long booked = ((Number) row[1]).longValue();
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("time", slot);
             m.put("available", (int) (totalConsoles - booked));
@@ -113,8 +107,8 @@ public class BookingController {
             return ResponseEntity.status(400).body(Map.of("error", "Invalid console type. Must be 'ps5' or 'psvr2'"));
         if (!isValidDate(date))
             return ResponseEntity.status(400).body(Map.of("error", "A valid date (YYYY-MM-DD) is required"));
-        if (!VALID_TIME_SLOTS.contains(timeSlot))
-            return ResponseEntity.status(400).body(Map.of("error", "Invalid time slot"));
+        if (!isValidTimeSlot(timeSlot))
+            return ResponseEntity.status(400).body(Map.of("error", "Invalid time slot. Use format like '2:30 PM'"));
         if (players < 1 || players > 8)
             return ResponseEntity.status(400).body(Map.of("error", "Players must be 1-8"));
         if (hours < 1 || hours > 12)
@@ -158,7 +152,7 @@ public class BookingController {
         booking.setPlayers(players);
         booking.setDurationHours((double) hours);
         booking.setTotalPrice(totalPrice);
-        booking.setStatus("confirmed");
+        booking.setStatus("pending");
         bookingRepository.save(booking);
 
         // Update loyalty XP and visits
@@ -232,6 +226,10 @@ public class BookingController {
     private boolean isValidDate(String date) {
         if (date == null || !DATE_RE.matcher(date).matches()) return false;
         try { java.time.LocalDate.parse(date); return true; } catch (Exception e) { return false; }
+    }
+
+    private boolean isValidTimeSlot(String time) {
+        return time != null && TIME_RE.matcher(time).matches();
     }
 
     private Map<String, Object> bookingToMap(Booking b) {

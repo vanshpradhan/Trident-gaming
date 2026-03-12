@@ -311,6 +311,163 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("message", "Session ended successfully"));
     }
 
+    // POST /api/admin/cleanup-test-data — one-time cleanup of test customers and their data
+    @PostMapping("/cleanup-test-data")
+    @Transactional
+    public ResponseEntity<?> cleanupTestData(HttpServletRequest req, HttpServletResponse res) throws IOException {
+        if (!isAdmin(req, res)) return null;
+
+        List<User> customers = userRepository.findAll().stream()
+            .filter(u -> "customer".equals(u.getRole())).toList();
+
+        long deletedSessions = 0, deletedOrders = 0, deletedBookings = 0, deletedLoyalty = 0, deletedUsers = 0;
+
+        // Delete sessions (all - they reference bookings)
+        List<Session> allSessions = sessionRepository.findAll();
+        sessionRepository.deleteAll(allSessions);
+        deletedSessions = allSessions.size();
+
+        for (User customer : customers) {
+            // Delete order items then orders
+            List<com.trident.cafe.entity.Order> orders = orderRepository.findByUserIdOrderByCreatedAtDesc(customer.getId());
+            for (com.trident.cafe.entity.Order order : orders) {
+                orderItemRepository.deleteAll(orderItemRepository.findByOrderId(order.getId()));
+            }
+            orderRepository.deleteAll(orders);
+            deletedOrders += orders.size();
+
+            // Delete bookings
+            List<Booking> bookings = bookingRepository.findByUserIdOrderByDateDescTimeSlotDesc(customer.getId());
+            bookingRepository.deleteAll(bookings);
+            deletedBookings += bookings.size();
+
+            // Delete loyalty
+            loyaltyRepository.findByUserId(customer.getId()).ifPresent(l -> {
+                loyaltyRepository.delete(l);
+            });
+            deletedLoyalty++;
+
+            // Delete user
+            userRepository.delete(customer);
+            deletedUsers++;
+        }
+
+        // Reset all consoles to available
+        consoleRepository.findAll().forEach(c -> {
+            if (!"maintenance".equals(c.getStatus())) {
+                c.setStatus("available");
+                consoleRepository.save(c);
+            }
+        });
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("deleted_sessions", deletedSessions);
+        result.put("deleted_orders", deletedOrders);
+        result.put("deleted_bookings", deletedBookings);
+        result.put("deleted_loyalty", deletedLoyalty);
+        result.put("deleted_users", deletedUsers);
+        result.put("message", "Test data cleanup complete");
+        return ResponseEntity.ok(result);
+    }
+
+    // POST /api/admin/bookings/:id/approve
+    @PostMapping("/bookings/{id}/approve")
+    @Transactional
+    public ResponseEntity<?> approveBooking(@PathVariable String id,
+                                             HttpServletRequest req, HttpServletResponse res) throws IOException {
+        if (!isAdmin(req, res)) return null;
+
+        Optional<Booking> opt = bookingRepository.findById(id);
+        if (opt.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Booking not found"));
+
+        Booking booking = opt.get();
+        if (!"pending".equals(booking.getStatus()))
+            return ResponseEntity.status(400).body(Map.of("error", "Only pending bookings can be approved"));
+
+        booking.setStatus("confirmed");
+        bookingRepository.save(booking);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("id", booking.getId());
+        result.put("status", booking.getStatus());
+        result.put("console_id", booking.getConsoleId());
+        result.put("user_id", booking.getUserId());
+
+        sseService.broadcast("booking:approved", Map.of("bookingId", id, "booking", result));
+        return ResponseEntity.ok(Map.of("message", "Booking approved", "id", id, "status", "confirmed"));
+    }
+
+    // POST /api/admin/sessions/start
+    // Body: { booking_id: string, player_name: string }
+    @PostMapping("/sessions/start")
+    @Transactional
+    public ResponseEntity<?> startSession(@RequestBody Map<String, Object> body,
+                                           HttpServletRequest req, HttpServletResponse res) throws IOException {
+        if (!isAdmin(req, res)) return null;
+
+        String bookingId = body.get("booking_id") instanceof String s ? s : "";
+        String playerName = body.get("player_name") instanceof String s ? s.trim() : "";
+
+        if (bookingId.isBlank())
+            return ResponseEntity.status(400).body(Map.of("error", "booking_id is required"));
+        if (playerName.isBlank())
+            return ResponseEntity.status(400).body(Map.of("error", "player_name is required"));
+
+        Optional<Booking> bookingOpt = bookingRepository.findById(bookingId);
+        if (bookingOpt.isEmpty())
+            return ResponseEntity.status(404).body(Map.of("error", "Booking not found"));
+
+        Booking booking = bookingOpt.get();
+        if (!"confirmed".equals(booking.getStatus()))
+            return ResponseEntity.status(400).body(Map.of("error", "Only confirmed bookings can be started. Current status: " + booking.getStatus()));
+
+        // Check if a session already exists for this booking
+        if (sessionRepository.findByBookingId(bookingId).isPresent())
+            return ResponseEntity.status(409).body(Map.of("error", "A session already exists for this booking"));
+
+        // Mark console as occupied
+        Optional<GameConsole> consoleOpt = consoleRepository.findById(booking.getConsoleId());
+        if (consoleOpt.isEmpty())
+            return ResponseEntity.status(404).body(Map.of("error", "Console not found"));
+
+        GameConsole console = consoleOpt.get();
+        console.setStatus("occupied");
+        consoleRepository.save(console);
+
+        // Create session
+        LocalDateTime startTime = LocalDateTime.now();
+        LocalDateTime endTime = startTime.plusHours((long) Math.ceil(booking.getDurationHours()));
+
+        Session session = new Session();
+        session.setId(UUID.randomUUID().toString());
+        session.setBookingId(bookingId);
+        session.setConsoleId(booking.getConsoleId());
+        session.setUserId(booking.getUserId());
+        session.setPlayerName(playerName);
+        session.setEndTime(endTime);
+        session.setStatus("active");
+        sessionRepository.save(session);
+
+        // Update booking status to active
+        booking.setStatus("active");
+        bookingRepository.save(booking);
+
+        Map<String, Object> sessionMap = new LinkedHashMap<>();
+        sessionMap.put("id", session.getId());
+        sessionMap.put("booking_id", bookingId);
+        sessionMap.put("console_id", session.getConsoleId());
+        sessionMap.put("user_id", session.getUserId());
+        sessionMap.put("player_name", session.getPlayerName());
+        sessionMap.put("start_time", session.getStartTime());
+        sessionMap.put("end_time", session.getEndTime());
+        sessionMap.put("status", session.getStatus());
+        sessionMap.put("console_name", console.getName());
+
+        sseService.broadcast("console:updated", Map.of("consoleId", console.getId(), "status", "occupied"));
+        sseService.broadcast("session:started", Map.of("session", sessionMap));
+        return ResponseEntity.status(201).body(sessionMap);
+    }
+
     // ─── CONSOLE CRUD ────────────────────────────────────────────────────
 
     @PostMapping("/consoles")

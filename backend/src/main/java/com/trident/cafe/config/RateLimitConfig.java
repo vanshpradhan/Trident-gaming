@@ -10,22 +10,22 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Rate limiting using Bucket4j (token-bucket algorithm).
- * Three tiers matching the Node.js implementation:
- *  - auth:     20 requests / 15 minutes per IP
- *  - mutation: 60 requests / 1 minute per IP
- *  - global:   200 requests / 1 minute per IP
+ * Tiers per IP:
+ *  - auth:     30 requests / 15 minutes  (prevents brute-force login)
+ *  - mutation: 300 requests / 1 minute   (POST/PUT/PATCH/DELETE on bookings, orders, admin)
+ *  - global:   600 requests / 1 minute   (all /api/* requests)
  */
 @Component
 public class RateLimitConfig {
 
-    private final ConcurrentHashMap<String, Bucket> authBuckets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Bucket> authBuckets     = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Bucket> mutationBuckets = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, Bucket> globalBuckets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Bucket> globalBuckets   = new ConcurrentHashMap<>();
 
     public Bucket getAuthBucket(String ip) {
         return authBuckets.computeIfAbsent(ip, k ->
             Bucket.builder()
-                .addLimit(Bandwidth.classic(20, Refill.intervally(20, Duration.ofMinutes(15))))
+                .addLimit(Bandwidth.classic(30, Refill.intervally(30, Duration.ofMinutes(15))))
                 .build()
         );
     }
@@ -33,7 +33,7 @@ public class RateLimitConfig {
     public Bucket getMutationBucket(String ip) {
         return mutationBuckets.computeIfAbsent(ip, k ->
             Bucket.builder()
-                .addLimit(Bandwidth.classic(60, Refill.intervally(60, Duration.ofMinutes(1))))
+                .addLimit(Bandwidth.classic(300, Refill.intervally(300, Duration.ofMinutes(1))))
                 .build()
         );
     }
@@ -41,7 +41,7 @@ public class RateLimitConfig {
     public Bucket getGlobalBucket(String ip) {
         return globalBuckets.computeIfAbsent(ip, k ->
             Bucket.builder()
-                .addLimit(Bandwidth.classic(200, Refill.intervally(200, Duration.ofMinutes(1))))
+                .addLimit(Bandwidth.classic(600, Refill.intervally(600, Duration.ofMinutes(1))))
                 .build()
         );
     }

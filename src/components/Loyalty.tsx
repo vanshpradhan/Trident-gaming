@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { motion } from "motion/react";
-import { Trophy, Star, Gift, Zap, Loader2, Lock, Crown, Award } from "lucide-react";
+import { Trophy, Star, Loader2, Lock, Crown, Award, Check, Percent, Zap } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useRefreshOn } from "../lib/useRealtimeUpdates";
@@ -45,6 +45,139 @@ function getTierIndex(tierName: string) {
   const idx = TIERS.findIndex(t => t.name === tierName);
   return idx >= 0 ? idx : 0;
 }
+
+// ── Sub-components ──────────────────────────────────────────────────────────
+
+interface LoyaltyPunchCardProps {
+  visits: number;
+  isLoggedIn: boolean;
+}
+
+function LoyaltyPunchCard({ visits, isLoggedIn }: LoyaltyPunchCardProps) {
+  const cycleVisits = isLoggedIn ? visits % 10 : 0;
+
+  const circles = Array.from({ length: 10 }, (_, i) => {
+    const stamped = i < cycleVisits;
+    const isMilestone = i === 4 || i === 9; // 5th and 10th
+    return { index: i, stamped, isMilestone };
+  });
+
+  const rows = [circles.slice(0, 5), circles.slice(5, 10)];
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row, rowIdx) => (
+        <div key={rowIdx} className="grid grid-cols-5 gap-3">
+          {row.map(({ index, stamped, isMilestone }) => (
+            <motion.div
+              key={index}
+              whileHover={{ scale: 1.08 }}
+              className={`
+                relative aspect-square flex items-center justify-center
+                border-2 transition-all duration-300
+                ${stamped
+                  ? isMilestone
+                    ? "bg-primary border-primary shadow-[0_0_12px_rgba(var(--primary-rgb,220,38,38),0.6)]"
+                    : "bg-white/20 border-white/60"
+                  : isMilestone
+                    ? "bg-transparent border-primary/40 border-dashed"
+                    : isLoggedIn
+                      ? "bg-transparent border-white/20"
+                      : "bg-transparent border-white/10"
+                }
+              `}
+            >
+              {stamped ? (
+                <Check
+                  className={`w-5 h-5 ${isMilestone ? "text-white" : "text-white"}`}
+                  strokeWidth={3}
+                />
+              ) : (
+                <span
+                  className={`text-xs font-display font-black ${
+                    isMilestone ? "text-primary/60" : "text-white/20"
+                  }`}
+                >
+                  {index + 1}
+                </span>
+              )}
+
+              {/* Milestone marker */}
+              {isMilestone && !stamped && (
+                <span className="absolute -top-2 -right-2 text-[9px] font-black bg-primary text-black px-1 leading-tight">
+                  {index === 4 ? "5TH" : "10TH"}
+                </span>
+              )}
+              {isMilestone && stamped && (
+                <span className="absolute -top-2 -right-2 text-[9px] font-black bg-white text-black px-1 leading-tight">
+                  {index === 4 ? "5TH" : "10TH"}
+                </span>
+              )}
+            </motion.div>
+          ))}
+        </div>
+      ))}
+      {isLoggedIn && (
+        <p className="text-center text-xs text-muted-foreground font-medium uppercase tracking-widest pt-1">
+          {cycleVisits === 0
+            ? "Start visiting to earn stamps"
+            : cycleVisits === 10
+              ? "Card complete — new card started!"
+              : `${cycleVisits} / 10 stamps this card`}
+        </p>
+      )}
+    </div>
+  );
+}
+
+interface MilestoneCardProps {
+  visit: number;
+  current: number;
+  icon: ReactNode;
+  label: string;
+  sublabel: string;
+  color: string;
+  borderColor: string;
+  bgColor: string;
+  activeBg: string;
+  activeBorder: string;
+}
+
+function MilestoneCard({
+  visit, current, icon, label, sublabel,
+  color, borderColor, bgColor, activeBg, activeBorder,
+}: MilestoneCardProps) {
+  // milestone is "reached" when cycleVisits >= visit (i.e. stamped on current card)
+  const cycleVisits = current % 10 === 0 && current > 0 ? 10 : current % 10;
+  const reached = cycleVisits >= visit;
+  const toGo = visit - cycleVisits;
+
+  return (
+    <div
+      className={`
+        p-4 border-2 transition-all duration-300 flex flex-col gap-2
+        ${reached ? `${activeBg} ${activeBorder}` : `${bgColor} ${borderColor}`}
+      `}
+    >
+      <div className={`flex items-center gap-2 ${reached ? color : "text-muted-foreground"}`}>
+        {icon}
+        <span className="font-display font-black text-sm uppercase tracking-wider">{label}</span>
+      </div>
+      <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">{sublabel}</p>
+      {reached ? (
+        <span className={`text-xs font-black uppercase tracking-widest ${color}`}>
+          Unlocked!
+        </span>
+      ) : (
+        <span className="text-xs text-muted-foreground font-medium">
+          {toGo} visit{toGo !== 1 ? "s" : ""} to go
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
 
 export function Loyalty() {
   const { isLoggedIn } = useAuth();
@@ -248,15 +381,14 @@ export function Loyalty() {
             <h3 className="text-2xl font-display font-black mb-6 text-white uppercase tracking-wider">Reward Rules</h3>
             <div className="space-y-4">
               {[
-                { label: "Minimum Visit", value: "1 hour per session", icon: "🕐" },
-                { label: "5th Visit", value: "50% OFF your session", icon: "🎉" },
-                { label: "10th Visit", value: "100% FREE (1 hr)", icon: "🆓" },
-                { label: "Tier Upgrade", value: "Every 10 visits", icon: "⬆️" },
-                { label: "Max Tier", value: "Trident's Hero (60+ visits)", icon: "🔱" },
-                { label: "Beyond Hero", value: "Earn ⭐ for every 10 visits", icon: "⭐" },
+                { label: "Minimum Visit", value: "1 hour per session" },
+                { label: "5th Visit", value: "50% OFF your session" },
+                { label: "10th Visit", value: "100% FREE (1 hr)" },
+                { label: "Tier Upgrade", value: "Every 10 visits" },
+                { label: "Max Tier", value: "Trident's Hero (60+ visits)" },
+                { label: "Beyond Hero", value: "Earn a star for every 10 visits" },
               ].map((rule) => (
                 <div key={rule.label} className="flex items-center gap-4 p-4 bg-black border-2 border-white/10 hover:border-primary transition-colors">
-                  <span className="text-2xl flex-shrink-0">{rule.icon}</span>
                   <div className="flex-1">
                     <span className="text-sm font-display font-black text-white uppercase tracking-wider">{rule.label}</span>
                     <span className="text-sm text-muted-foreground font-medium uppercase tracking-widest ml-4">{rule.value}</span>
@@ -267,82 +399,64 @@ export function Loyalty() {
           </motion.div>
         </div>
 
-        {/* Right Column: Rewards List + Leaderboard */}
+        {/* Right Column: Loyalty Punch Card + Leaderboard */}
         <div className="space-y-8">
+          {/* ── Loyalty Punch Card ─────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, x: 50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.2 }}
-            className="space-y-8"
+            className="bg-zinc-900 border-2 border-white/10 p-8 clip-path-zentry relative overflow-hidden group hover:border-primary transition-all duration-300"
           >
-            {rewards.map((reward, i) => {
-              const isUnlocked = reward.user_status === "unlocked" || reward.user_status === "redeemed";
-              const isRedeemed = reward.user_status === "redeemed";
-              const rewardProgress = isLoggedIn && loyalty
-                ? Math.min(100, Math.round((currentVisits / reward.visits_required) * 100))
-                : 0;
-              const visitsRemaining = Math.max(0, reward.visits_required - currentVisits);
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-[80px] -z-10 group-hover:bg-primary/10 transition-colors duration-500" />
 
-              return (
-                <motion.div
-                  key={reward.id}
-                  whileHover={{ x: -10 }}
-                  className={`bg-zinc-900 p-8 border-l-4 relative overflow-hidden group cursor-pointer transition-all duration-300 hover:bg-black ${
-                    isUnlocked ? "border-l-secondary" : "border-l-primary"
-                  }`}
-                >
-                  <div className="flex items-start gap-6 relative z-10">
-                    <div className={`w-16 h-16 bg-black border-2 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-300 clip-path-zentry ${
-                      isUnlocked ? "border-secondary" : "border-primary"
-                    }`}>
-                      {isUnlocked ? (
-                        <Gift className="w-8 h-8 text-secondary" />
-                      ) : (
-                        <Trophy className="w-8 h-8 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className={`text-2xl font-display font-black text-white mb-2 transition-colors uppercase tracking-wider ${
-                        isUnlocked ? "group-hover:text-secondary" : "group-hover:text-primary"
-                      }`}>
-                        {reward.name}
-                      </h4>
-                      <p className="text-muted-foreground mb-4 font-medium uppercase tracking-widest">{reward.description}</p>
-                      
-                      {isRedeemed ? (
-                        <span className="inline-flex items-center px-4 py-1 bg-white/10 text-white/50 font-black text-xs uppercase tracking-widest clip-path-zentry">
-                          Redeemed
-                        </span>
-                      ) : isUnlocked ? (
-                        <span className="inline-flex items-center px-4 py-1 bg-secondary text-black font-black text-xs uppercase tracking-widest clip-path-zentry">
-                          Unlocked
-                        </span>
-                      ) : isLoggedIn ? (
-                        <>
-                          <div className="w-full bg-black border-2 border-white/10 h-3 mb-3 overflow-hidden clip-path-zentry">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              whileInView={{ width: `${rewardProgress}%` }}
-                              viewport={{ once: true }}
-                              transition={{ duration: 1, delay: 0.5 + i * 0.2 }}
-                              className="bg-primary h-full"
-                            />
-                          </div>
-                          <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                            {visitsRemaining} visits remaining
-                          </span>
-                        </>
-                      ) : (
-                        <span className="inline-flex items-center px-4 py-1 bg-white/5 text-muted-foreground font-black text-xs uppercase tracking-widest clip-path-zentry">
-                          {reward.visits_required} Visits Required
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
+            <h3 className="text-2xl font-display font-black mb-2 text-white uppercase tracking-wider text-center">
+              Loyalty Card
+            </h3>
+            <p className="text-muted-foreground text-xs font-medium uppercase tracking-widest text-center mb-8">
+              Every visit earns a stamp — collect rewards at visit 5 &amp; 10
+            </p>
+
+            {/* 10 circles — 2 rows of 5 */}
+            <LoyaltyPunchCard visits={currentVisits} isLoggedIn={isLoggedIn} />
+
+            {/* Milestone reward labels */}
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              <MilestoneCard
+                visit={5}
+                current={currentVisits}
+                icon={<Percent className="w-5 h-5" />}
+                label="50% Off"
+                sublabel="Your next session"
+                color="text-secondary"
+                borderColor="border-secondary/40"
+                bgColor="bg-secondary/5"
+                activeBg="bg-secondary/20"
+                activeBorder="border-secondary"
+              />
+              <MilestoneCard
+                visit={10}
+                current={currentVisits}
+                icon={<Zap className="w-5 h-5" />}
+                label="1 Hour Free"
+                sublabel="100% off (1 hr session)"
+                color="text-primary"
+                borderColor="border-primary/40"
+                bgColor="bg-primary/5"
+                activeBg="bg-primary/20"
+                activeBorder="border-primary"
+              />
+            </div>
+
+            {!isLoggedIn && (
+              <div className="mt-6 flex items-center justify-center gap-3 p-4 bg-black/60 border border-white/10">
+                <Lock className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  Sign in to track your visits
+                </span>
+              </div>
+            )}
           </motion.div>
 
           {/* Leaderboard */}

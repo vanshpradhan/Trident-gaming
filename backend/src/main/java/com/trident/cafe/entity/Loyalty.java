@@ -33,7 +33,7 @@ public class Loyalty {
     @Column(nullable = false, length = 20)
     private String tier = "Bronze"; // Bronze | Silver | Gold | Platinum | Diamond | Trident's Hero
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
     private Integer stars = 0;
 
     @Column(name = "active_boosters", nullable = false)

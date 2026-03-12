@@ -254,6 +254,21 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify({ delta }),
       }),
+
+    // Booking approval flow
+    approveBooking: (id: string) =>
+      request(`/admin/bookings/${id}/approve`, { method: "POST" }),
+
+    // Start session from confirmed booking
+    startSession: (bookingId: string, playerName: string) =>
+      request<any>("/admin/sessions/start", {
+        method: "POST",
+        body: JSON.stringify({ booking_id: bookingId, player_name: playerName }),
+      }),
+
+    // Cleanup test data
+    cleanupTestData: () =>
+      request("/admin/cleanup-test-data", { method: "POST" }),
   },
 
   // --- Games (public) ---

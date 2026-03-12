@@ -13,6 +13,8 @@ export type SSEEventType =
   | "console:added"
   | "console:removed"
   | "session:ended"
+  | "session:started"
+  | "booking:approved"
   | "snack:added"
   | "snack:updated"
   | "snack:removed"
@@ -74,6 +76,8 @@ export function useRealtimeUpdates(
       "console:added",
       "console:removed",
       "session:ended",
+      "session:started",
+      "booking:approved",
       "snack:added",
       "snack:updated",
       "snack:removed",
