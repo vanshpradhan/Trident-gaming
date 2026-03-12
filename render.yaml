@@ -14,30 +14,5 @@ services:
         generateValue: true
       - key: ALLOWED_ORIGINS
         value: https://trident-gaming-cafe.onrender.com
-      - key: PGHOST
-        fromDatabase:
-          name: trident-db
-          property: host
-      - key: PGPORT
-        fromDatabase:
-          name: trident-db
-          property: port
-      - key: PGDATABASE
-        fromDatabase:
-          name: trident-db
-          property: database
-      - key: PGUSER
-        fromDatabase:
-          name: trident-db
-          property: user
-      - key: PGPASSWORD
-        fromDatabase:
-          name: trident-db
-          property: password
-
-databases:
-  - name: trident-db
-    region: singapore
-    plan: free
-    databaseName: trident
-    user: trident
+      # PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD must be added manually
+      # from the free PostgreSQL service you create in the Render dashboard.
