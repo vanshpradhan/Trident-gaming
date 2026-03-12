@@ -1,5 +1,7 @@
 import { motion } from "motion/react";
-import { MapPin, Navigation } from "lucide-react";
+import { Navigation } from "lucide-react";
+
+const MAPS_LINK = "https://maps.app.goo.gl/bzqTrj3nb6rSU1g88";
 
 export function Map() {
   return (
@@ -21,7 +23,7 @@ export function Map() {
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
           className="text-muted-foreground text-xl max-w-2xl font-medium uppercase tracking-widest"
         >
-          Located in the heart of the city. Easy access, ample parking.
+          KB Pradhan Plaza, NS Road, Jaigaon — easy access, ample parking.
         </motion.p>
       </div>
 
@@ -30,54 +32,48 @@ export function Map() {
         whileInView={{ opacity: 1, scale: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
         transition={{ type: "spring", stiffness: 100, damping: 20 }}
-        className="bg-zinc-900 border-2 border-white/10 overflow-hidden relative h-[600px] group clip-path-zentry transition-all duration-300 hover:border-primary"
+        className="relative overflow-hidden border-2 border-white/10 hover:border-primary transition-colors duration-300 group"
       >
-        {/* Simulated Map Background */}
-        <div className="absolute inset-0 bg-black opacity-80" />
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1600')] bg-cover bg-center mix-blend-overlay opacity-40 grayscale group-hover:scale-105 transition-transform duration-1000" />
-        
-        {/* Grid Overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#e4ff001a_1px,transparent_1px),linear-gradient(to_bottom,#e4ff001a_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-30" />
-
-        {/* Animated Marker */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center">
-          <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className="relative"
-          >
-            <MapPin className="w-16 h-16 text-primary drop-shadow-[0_0_15px_rgba(228,255,0,0.8)]" />
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-6 h-1.5 bg-black/80 rounded-full blur-[2px]" />
-          </motion.div>
-          
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            className="mt-6 bg-black border-2 border-primary px-8 py-4 text-center cursor-pointer hover:bg-primary group/marker transition-colors clip-path-zentry"
-          >
-            <h3 className="font-display font-black text-white text-2xl uppercase tracking-wider group-hover/marker:text-black transition-colors">Trident Gaming Café</h3>
-            <p className="text-sm font-medium uppercase tracking-widest text-primary group-hover/marker:text-black transition-colors">123 Neon Street, Cyber City</p>
-          </motion.div>
-        </div>
-
-        {/* Radar Sweep Effect */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full border border-primary/20 pointer-events-none">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 4, ease: "linear" }}
-            className="absolute inset-0 rounded-full border-t-4 border-primary/50 shadow-[0_0_30px_rgba(228,255,0,0.5)]"
-            style={{ clipPath: "polygon(50% 50%, 100% 0, 100% 100%)" }}
-          />
-        </div>
-
-        {/* Floating Action Button */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="absolute bottom-10 right-10 z-30 flex items-center gap-3 bg-primary text-black px-8 py-4 font-display font-black text-xl uppercase tracking-widest hover:bg-white transition-colors clip-path-zentry-reverse"
+        {/* Clickable map image */}
+        <a
+          href={MAPS_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block relative cursor-pointer"
         >
-          <Navigation className="w-6 h-6" />
-          Get Directions
-        </motion.button>
+          <img
+            src="/map-preview.png"
+            alt="Trident Gaming Café location map"
+            className="w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            style={{ display: "block" }}
+          />
+
+          {/* Dark hover overlay */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-300" />
+
+          {/* Centre label that appears on hover */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="bg-primary text-black font-display font-black text-xl uppercase tracking-widest px-8 py-4 flex items-center gap-3 shadow-[0_0_40px_rgba(228,255,0,0.6)]">
+              <Navigation className="w-5 h-5" />
+              Open in Google Maps
+            </div>
+          </div>
+        </a>
+
+        {/* Always-visible Get Directions button */}
+        <div className="absolute bottom-6 right-6 z-10">
+          <motion.a
+            href={MAPS_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="flex items-center gap-3 bg-primary text-black px-8 py-4 font-display font-black text-lg uppercase tracking-widest hover:bg-white transition-colors shadow-[0_0_30px_rgba(228,255,0,0.4)]"
+          >
+            <Navigation className="w-5 h-5" />
+            Get Directions
+          </motion.a>
+        </div>
       </motion.div>
     </section>
   );

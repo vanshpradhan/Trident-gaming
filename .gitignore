@@ -7,8 +7,10 @@ coverage/
 .env*
 !.env.example
 *.db
+*.db-shm
+*.db-wal
 backend/target/
-backend/.mvn/
+# Do NOT ignore backend/.mvn — Maven wrapper is needed for Docker/CI build
 *.class
 *.jar
 nul

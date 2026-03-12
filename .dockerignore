@@ -1,0 +1,14 @@
+node_modules/
+dist/
+backend/target/
+backend/.mvn/
+*.log
+*.db
+*.db-shm
+*.db-wal
+.git/
+.env
+.env.*
+!.env.example
+.vscode/
+nul

@@ -1,4 +1,4 @@
-import { Gamepad2, Twitter, Instagram, Facebook, Youtube } from "lucide-react";
+import { Instagram, Facebook } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 
@@ -24,10 +24,15 @@ export function Footer() {
               The ultimate destination for gamers. High-end consoles, premium snacks, and an atmosphere built for champions.
             </p>
             <div className="flex items-center gap-4">
-              {[Twitter, Instagram, Facebook, Youtube].map((Icon, i) => (
+              {[
+                { Icon: Instagram, href: "https://www.instagram.com/tridentcafe_official?igsh=eGNvMXR6MXkzeDdq" },
+                { Icon: Facebook, href: "https://www.facebook.com/share/174Z3JDex9/?mibextid=wwXIfr" },
+              ].map(({ Icon, href }, i) => (
                 <motion.a
                   key={i}
-                  href="#"
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}
                   className="w-12 h-12 bg-zinc-900 border-2 border-white/10 flex items-center justify-center text-white hover:bg-primary hover:text-black hover:border-primary transition-all duration-300 clip-path-zentry"
@@ -57,19 +62,7 @@ export function Footer() {
             </ul>
           </div>
 
-          <div>
-            <h4 className="font-display font-black text-white mb-8 uppercase tracking-widest text-xl">Support</h4>
-            <ul className="space-y-4">
-              {["FAQ", "Contact Us", "Terms of Service", "Privacy Policy", "Refund Policy"].map((link) => (
-                <li key={link}>
-                  <a href="#" className="text-muted-foreground hover:text-primary transition-colors text-sm font-medium uppercase tracking-widest flex items-center gap-4 group">
-                    <span className="w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-6" />
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+
         </div>
 
         <div className="border-t-2 border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">

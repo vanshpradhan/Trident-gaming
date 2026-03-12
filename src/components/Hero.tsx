@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform } from "motion/react";
-import { ChevronDown, Gamepad2 } from "lucide-react";
+import { ChevronDown, Gamepad2, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useRef } from "react";
 
@@ -37,11 +37,12 @@ export function Hero() {
         className="absolute inset-0 z-10 bg-zinc-900"
       >
         <img 
-          src="https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2000" 
+          src="/hero-bg.png" 
           alt="Gaming"
-          className="w-full h-full object-cover opacity-60 mix-blend-luminosity"
+          className="w-full h-full object-cover"
+          style={{ imageRendering: "high-quality" }}
         />
-        <div className="absolute inset-0 bg-primary/20 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-black/30" />
       </motion.div>
 
       {/* Foreground Content */}
@@ -79,6 +80,16 @@ export function Hero() {
             <span className="relative z-10 flex items-center">
               <Gamepad2 className="mr-3 h-6 w-6" />
               Book a Console
+            </span>
+          </Link>
+
+          <Link
+            to="/map"
+            className="group relative inline-flex items-center justify-center overflow-hidden border-2 border-primary bg-black/50 px-10 py-5 font-display text-xl font-black text-primary uppercase tracking-wider transition-all duration-300 hover:scale-105 hover:bg-primary hover:text-black backdrop-blur-md clip-path-zentry"
+          >
+            <span className="relative z-10 flex items-center">
+              <MapPin className="mr-3 h-6 w-6" />
+              Locate Us
             </span>
           </Link>
         </motion.div>

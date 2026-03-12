@@ -5,7 +5,7 @@ import {
   Settings, Users, ShoppingBag, Activity, Monitor, Bell, Loader2, Lock,
   Clock, AlertTriangle, CheckCircle2, XCircle, RefreshCw, Gamepad2,
   CalendarDays, IndianRupee, TrendingUp, Eye, ChevronDown, LogOut, ArrowLeft,
-  Plus, Trash2, Edit3, X, Tag, UtensilsCrossed, DollarSign, Save, Star
+  Plus, Trash2, Edit3, X, Tag, UtensilsCrossed, Save, Star, Award, Check, Percent, Zap, Trophy, History
 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -119,7 +119,7 @@ interface Game {
   created_at: string;
 }
 
-type Tab = "overview" | "sessions" | "bookings" | "orders" | "customers" | "consoles" | "snacks" | "pricing" | "games";
+type Tab = "overview" | "sessions" | "bookings" | "orders" | "customers" | "consoles" | "snacks" | "games" | "loyalty" | "history";
 
 // ─── Helpers ─────────────────────────────────────────────────────────
 const statusColors: Record<string, string> = {
@@ -179,12 +179,11 @@ export function AdminPreview() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [consoles, setConsoles] = useState<Console[]>([]);
   const [snacks, setSnacks] = useState<Snack[]>([]);
-  const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
   const [games, setGames] = useState<Game[]>([]);
 
   const loadAllData = useCallback(async () => {
     try {
-      const [statsData, sessionsData, bookingsData, ordersData, customersData, consolesData, snacksData, pricingData, gamesData] =
+      const [statsData, sessionsData, bookingsData, ordersData, customersData, consolesData, snacksData, gamesData] =
         await Promise.all([
           api.admin.stats(),
           api.admin.sessions(),
@@ -193,7 +192,6 @@ export function AdminPreview() {
           api.admin.customers(),
           api.consoles.list(),
           api.admin.snacks(),
-          api.admin.pricing(),
           api.admin.games(),
         ]);
       setStats(statsData);
@@ -203,7 +201,6 @@ export function AdminPreview() {
       setCustomers(customersData);
       setConsoles(consolesData);
       setSnacks(snacksData);
-      setPricingPlans(pricingData);
       setGames(gamesData);
     } catch (err) {
       console.error("Admin data load failed:", err);
@@ -220,10 +217,10 @@ export function AdminPreview() {
 
   // Real-time: SSE-triggered refresh instead of polling
   useRefreshOn(loadAllData, [
-    "booking:created", "booking:cancelled",
+    "booking:created", "booking:cancelled", "booking:approved",
     "order:created", "order:updated",
     "console:updated", "console:added", "console:removed",
-    "session:ended",
+    "session:ended", "session:started",
     "snack:added", "snack:updated", "snack:removed",
     "pricing:added", "pricing:updated", "pricing:removed",
     "game:added", "game:updated", "game:removed",
@@ -244,6 +241,26 @@ export function AdminPreview() {
       setStats(newStats);
     } catch (err: any) {
       alert(err.message || "Failed to end session");
+    }
+  };
+
+  const handleApproveBooking = async (bookingId: string) => {
+    try {
+      await api.admin.approveBooking(bookingId);
+      setBookings((prev) =>
+        prev.map((b) => (b.id === bookingId ? { ...b, status: "confirmed" } : b))
+      );
+    } catch (err: any) {
+      alert(err.message || "Failed to approve booking");
+    }
+  };
+
+  const handleStartSession = async (bookingId: string, playerName: string) => {
+    try {
+      await api.admin.startSession(bookingId, playerName);
+      await loadAllData();
+    } catch (err: any) {
+      alert(err.message || "Failed to start session");
     }
   };
 
@@ -327,8 +344,9 @@ export function AdminPreview() {
     { icon: <Users className="w-5 h-5" />, label: "Customers", key: "customers", count: customers.length },
     { icon: <Gamepad2 className="w-5 h-5" />, label: "Consoles", key: "consoles", count: consoles.length },
     { icon: <UtensilsCrossed className="w-5 h-5" />, label: "Snacks", key: "snacks", count: snacks.length },
-    { icon: <Tag className="w-5 h-5" />, label: "Pricing", key: "pricing", count: pricingPlans.length },
     { icon: <Gamepad2 className="w-5 h-5" />, label: "Games", key: "games", count: games.length },
+    { icon: <Award className="w-5 h-5" />, label: "Loyalty", key: "loyalty", count: customers.length },
+    { icon: <History className="w-5 h-5" />, label: "History", key: "history" },
   ];
 
   // ─── Dashboard Layout ─────────────────────────────────────────────
@@ -441,13 +459,14 @@ export function AdminPreview() {
           <div className="flex-1 min-w-0">
             {activeTab === "overview" && <OverviewTab stats={stats} sessions={sessions} orders={orders} bookings={bookings} customers={customers} setActiveTab={setActiveTab} />}
             {activeTab === "sessions" && <SessionsTab sessions={sessions} onEndSession={handleEndSession} />}
-            {activeTab === "bookings" && <BookingsTab bookings={bookings} />}
+            {activeTab === "bookings" && <BookingsTab bookings={bookings} onApprove={handleApproveBooking} onStartSession={handleStartSession} />}
             {activeTab === "orders" && <OrdersTab orders={orders} onStatusChange={handleOrderStatus} />}
             {activeTab === "customers" && <CustomersTab customers={customers} onRefresh={loadAllData} />}
             {activeTab === "consoles" && <ConsolesTab consoles={consoles} onStatusChange={handleConsoleStatus} onRefresh={loadAllData} />}
             {activeTab === "snacks" && <SnacksTab snacks={snacks} onRefresh={loadAllData} />}
-            {activeTab === "pricing" && <PricingTab plans={pricingPlans} onRefresh={loadAllData} />}
             {activeTab === "games" && <GamesTab games={games} onRefresh={loadAllData} />}
+            {activeTab === "loyalty" && <LoyaltyTab customers={customers} onRefresh={loadAllData} />}
+            {activeTab === "history" && <HistoryTab bookings={bookings} orders={orders} />}
           </div>
         </div>
       </div>
@@ -613,6 +632,26 @@ function OverviewTab({
 
 // ─── SESSIONS TAB ────────────────────────────────────────────────────
 function SessionsTab({ sessions, onEndSession }: { sessions: Session[]; onEndSession: (id: string) => void }) {
+  // Live client-side countdown timers: tick every second
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  function formatTimeLeft(endTime: string): { display: string; status: string } {
+    const msLeft = new Date(endTime).getTime() - now;
+    if (msLeft <= 0) return { display: "Time Up", status: "time_up" };
+    const totalSecs = Math.floor(msLeft / 1000);
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    const display = h > 0
+      ? `${h}h ${m.toString().padStart(2, "0")}m`
+      : `${m.toString().padStart(2, "0")}m ${s.toString().padStart(2, "0")}s`;
+    const status = msLeft < 10 * 60 * 1000 ? "ending_soon" : "active";
+    return { display, status };
+  }
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -641,7 +680,9 @@ function SessionsTab({ sessions, onEndSession }: { sessions: Session[]; onEndSes
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {sessions.map((s) => (
+                {sessions.map((s) => {
+                  const { display: liveDisplay, status: liveStatus } = formatTimeLeft(s.end_time);
+                  return (
                   <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-4 py-3 text-sm font-display font-black text-white">{s.console_id}</td>
                     <td className="px-4 py-3 text-xs text-muted-foreground uppercase tracking-widest">{s.console_type}</td>
@@ -649,8 +690,8 @@ function SessionsTab({ sessions, onEndSession }: { sessions: Session[]; onEndSes
                       <div className="text-xs font-bold text-white">{s.user_name}</div>
                       <div className="text-[10px] text-muted-foreground">{s.user_email}</div>
                     </td>
-                    <td className="px-4 py-3 text-sm font-display font-black text-white">{s.time_remaining_display}</td>
-                    <td className="px-4 py-3"><Badge status={s.computed_status} /></td>
+                    <td className="px-4 py-3 text-sm font-display font-black text-white">{liveDisplay}</td>
+                    <td className="px-4 py-3"><Badge status={liveStatus} /></td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => onEndSession(s.id)}
@@ -660,7 +701,8 @@ function SessionsTab({ sessions, onEndSession }: { sessions: Session[]; onEndSes
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -671,24 +713,116 @@ function SessionsTab({ sessions, onEndSession }: { sessions: Session[]; onEndSes
 }
 
 // ─── BOOKINGS TAB ────────────────────────────────────────────────────
-function BookingsTab({ bookings }: { bookings: Booking[] }) {
+function BookingsTab({
+  bookings,
+  onApprove,
+  onStartSession,
+}: {
+  bookings: Booking[];
+  onApprove: (id: string) => Promise<void>;
+  onStartSession: (bookingId: string, playerName: string) => Promise<void>;
+}) {
+  const todayStr = new Date().toISOString().slice(0, 10);
   const [filter, setFilter] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const [startSessionBooking, setStartSessionBooking] = useState<Booking | null>(null);
+  const [playerName, setPlayerName] = useState("");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const filtered = filter === "all" ? bookings : bookings.filter((b) => b.status === filter);
+  // First filter by selected date (using booking date field), then by status
+  const byDate = bookings.filter((b) => b.date === selectedDate);
+  const filtered = filter === "all" ? byDate : byDate.filter((b) => b.status === filter);
 
-  const statusCounts = bookings.reduce((acc, b) => {
+  const statusCounts = byDate.reduce((acc, b) => {
     acc[b.status] = (acc[b.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
+  const handleApprove = async (id: string) => {
+    setActionLoading(id + ":approve");
+    try { await onApprove(id); } finally { setActionLoading(null); }
+  };
+
+  const handleStartSession = async () => {
+    if (!startSessionBooking || !playerName.trim()) return;
+    setActionLoading(startSessionBooking.id + ":start");
+    try {
+      await onStartSession(startSessionBooking.id, playerName.trim());
+      setStartSessionBooking(null);
+      setPlayerName("");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Start Session Modal */}
+      {startSessionBooking && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="bg-zinc-950 border border-secondary/40 p-6 w-full max-w-sm space-y-4">
+            <h3 className="font-display font-black text-white uppercase tracking-wider text-sm">
+              Start Session — {startSessionBooking.console_id}
+            </h3>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">
+              Customer: {startSessionBooking.user_name} · {startSessionBooking.duration_hours}h · ₹{startSessionBooking.total_price}
+            </p>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Player Name (at counter)</label>
+              <input
+                type="text"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleStartSession()}
+                placeholder={startSessionBooking.user_name}
+                className="w-full bg-black border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-secondary/50 outline-none"
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleStartSession}
+                disabled={actionLoading === startSessionBooking.id + ":start"}
+                className="flex-1 px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-50"
+              >
+                {actionLoading === startSessionBooking.id + ":start" ? <Loader2 className="w-3 h-3 animate-spin mx-auto" /> : "Start Session"}
+              </button>
+              <button
+                onClick={() => { setStartSessionBooking(null); setPlayerName(""); }}
+                className="flex-1 px-4 py-2 text-[10px] font-black uppercase tracking-widest bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="font-display font-black text-white text-lg uppercase tracking-wider">
-          All Bookings <span className="text-secondary">({bookings.length})</span>
-        </h2>
+        <div className="flex items-center gap-4 flex-wrap">
+          <h2 className="font-display font-black text-white text-lg uppercase tracking-wider">
+            Bookings <span className="text-secondary">({byDate.length})</span>
+          </h2>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Date</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => { setSelectedDate(e.target.value); setFilter("all"); }}
+              className="bg-black border border-white/10 text-white text-xs px-3 py-1.5 focus:border-secondary/50 outline-none"
+            />
+            {selectedDate !== todayStr && (
+              <button
+                onClick={() => { setSelectedDate(todayStr); setFilter("all"); }}
+                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border border-white/10 text-muted-foreground hover:border-white/30 hover:text-white transition-colors"
+              >
+                Today
+              </button>
+            )}
+          </div>
+        </div>
         <div className="flex gap-2 flex-wrap">
-          {["all", "confirmed", "active", "completed", "cancelled"].map((s) => (
+          {["all", "pending", "confirmed", "active", "completed", "cancelled"].map((s) => (
             <button
               key={s}
               onClick={() => setFilter(s)}
@@ -698,7 +832,7 @@ function BookingsTab({ bookings }: { bookings: Booking[] }) {
                   : "bg-transparent text-muted-foreground border-white/10 hover:border-white/30"
               }`}
             >
-              {s} {s !== "all" && statusCounts[s] ? `(${statusCounts[s]})` : s === "all" ? `(${bookings.length})` : ""}
+              {s} {s !== "all" && statusCounts[s] ? `(${statusCounts[s]})` : s === "all" ? `(${byDate.length})` : ""}
             </button>
           ))}
         </div>
@@ -723,6 +857,7 @@ function BookingsTab({ bookings }: { bookings: Booking[] }) {
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Players</th>
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total</th>
                   <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -739,6 +874,28 @@ function BookingsTab({ bookings }: { bookings: Booking[] }) {
                     <td className="px-4 py-3 text-xs text-muted-foreground">{b.players}</td>
                     <td className="px-4 py-3 text-sm font-display font-black text-primary">₹{b.total_price}</td>
                     <td className="px-4 py-3"><Badge status={b.status} /></td>
+                    <td className="px-4 py-3">
+                      {b.status === "pending" && (
+                        <button
+                          onClick={() => handleApprove(b.id)}
+                          disabled={actionLoading === b.id + ":approve"}
+                          className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === b.id + ":approve" ? <Loader2 className="w-3 h-3 animate-spin" /> : "Approve"}
+                        </button>
+                      )}
+                      {b.status === "confirmed" && (
+                        <button
+                          onClick={() => { setStartSessionBooking(b); setPlayerName(b.user_name); }}
+                          className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-colors"
+                        >
+                          Start Session
+                        </button>
+                      )}
+                      {!["pending", "confirmed"].includes(b.status) && (
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">--</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -752,11 +909,15 @@ function BookingsTab({ bookings }: { bookings: Booking[] }) {
 
 // ─── ORDERS TAB ──────────────────────────────────────────────────────
 function OrdersTab({ orders, onStatusChange }: { orders: Order[]; onStatusChange: (id: string, status: string) => void }) {
+  const todayStr = new Date().toISOString().slice(0, 10);
   const [filter, setFilter] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  // Filter by date using created_at, then by status
+  const byDate = orders.filter((o) => o.created_at?.slice(0, 10) === selectedDate);
+  const filtered = filter === "all" ? byDate : byDate.filter((o) => o.status === filter);
 
-  const statusCounts = orders.reduce((acc, o) => {
+  const statusCounts = byDate.reduce((acc, o) => {
     acc[o.status] = (acc[o.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -764,9 +925,28 @@ function OrdersTab({ orders, onStatusChange }: { orders: Order[]; onStatusChange
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="font-display font-black text-white text-lg uppercase tracking-wider">
-          All Orders <span className="text-secondary">({orders.length})</span>
-        </h2>
+        <div className="flex items-center gap-4 flex-wrap">
+          <h2 className="font-display font-black text-white text-lg uppercase tracking-wider">
+            Orders <span className="text-secondary">({byDate.length})</span>
+          </h2>
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Date</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => { setSelectedDate(e.target.value); setFilter("all"); }}
+              className="bg-black border border-white/10 text-white text-xs px-3 py-1.5 focus:border-secondary/50 outline-none"
+            />
+            {selectedDate !== todayStr && (
+              <button
+                onClick={() => { setSelectedDate(todayStr); setFilter("all"); }}
+                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border border-white/10 text-muted-foreground hover:border-white/30 hover:text-white transition-colors"
+              >
+                Today
+              </button>
+            )}
+          </div>
+        </div>
         <div className="flex gap-2 flex-wrap">
           {["all", "pending", "preparing", "ready", "delivered", "cancelled"].map((s) => (
             <button
@@ -778,7 +958,7 @@ function OrdersTab({ orders, onStatusChange }: { orders: Order[]; onStatusChange
                   : "bg-transparent text-muted-foreground border-white/10 hover:border-white/30"
               }`}
             >
-              {s} {s !== "all" && statusCounts[s] ? `(${statusCounts[s]})` : s === "all" ? `(${orders.length})` : ""}
+              {s} {s !== "all" && statusCounts[s] ? `(${statusCounts[s]})` : s === "all" ? `(${byDate.length})` : ""}
             </button>
           ))}
         </div>
@@ -1611,11 +1791,383 @@ function PricingTab({ plans, onRefresh }: { plans: PricingPlan[]; onRefresh: () 
                )}
              </div>
            ))}
-         </div>
-       )}
-     </div>
-   );
- }
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── HISTORY TAB ─────────────────────────────────────────────────────
+function HistoryTab({ bookings, orders }: { bookings: Booking[]; orders: Order[] }) {
+  const [view, setView] = useState<"bookings" | "orders">("bookings");
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  // All bookings NOT from today, sorted newest first
+  const pastBookings = bookings
+    .filter((b) => b.date < todayStr)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // All orders NOT from today, sorted newest first
+  const pastOrders = orders
+    .filter((o) => o.created_at?.slice(0, 10) < todayStr)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Group by date helper
+  function groupByDate<T>(items: T[], getDate: (item: T) => string): { date: string; items: T[] }[] {
+    const map = new Map<string, T[]>();
+    for (const item of items) {
+      const d = getDate(item).slice(0, 10);
+      if (!map.has(d)) map.set(d, []);
+      map.get(d)!.push(item);
+    }
+    // Sort groups newest first
+    return Array.from(map.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([date, items]) => ({ date, items }));
+  }
+
+  const bookingGroups = groupByDate(pastBookings, (b) => b.date);
+  const orderGroups = groupByDate(pastOrders, (o) => o.created_at);
+
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("en-IN", {
+      weekday: "long", day: "2-digit", month: "long", year: "numeric",
+    });
+
+  const formatTime = (isoStr: string) =>
+    new Date(isoStr).toLocaleTimeString("en-IN", {
+      hour: "2-digit", minute: "2-digit", hour12: true,
+    });
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h2 className="font-display font-black text-white text-lg uppercase tracking-wider flex items-center gap-3">
+            <History className="w-5 h-5 text-secondary" />
+            History
+          </h2>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">
+            All records before today — stored with full date &amp; time
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setView("bookings")}
+            className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest border transition-colors ${
+              view === "bookings"
+                ? "bg-secondary text-black border-secondary"
+                : "bg-transparent text-muted-foreground border-white/10 hover:border-white/30"
+            }`}
+          >
+            Bookings <span className="ml-1 opacity-70">({pastBookings.length})</span>
+          </button>
+          <button
+            onClick={() => setView("orders")}
+            className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest border transition-colors ${
+              view === "orders"
+                ? "bg-secondary text-black border-secondary"
+                : "bg-transparent text-muted-foreground border-white/10 hover:border-white/30"
+            }`}
+          >
+            Orders <span className="ml-1 opacity-70">({pastOrders.length})</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── BOOKINGS HISTORY ── */}
+      {view === "bookings" && (
+        <div className="space-y-6">
+          {bookingGroups.length === 0 ? (
+            <div className="bg-zinc-950 border border-white/10 p-12 text-center">
+              <History className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-xs uppercase tracking-widest">No booking history yet</p>
+            </div>
+          ) : bookingGroups.map(({ date, items }) => (
+            <div key={date} className="space-y-2">
+              {/* Date group header */}
+              <div className="flex items-center gap-3">
+                <CalendarDays className="w-4 h-4 text-secondary flex-shrink-0" />
+                <span className="text-xs font-black uppercase tracking-widest text-secondary">{formatDate(date)}</span>
+                <span className="text-[10px] text-muted-foreground">— {items.length} booking{items.length !== 1 ? "s" : ""}</span>
+                <div className="flex-1 h-px bg-white/5" />
+              </div>
+
+              <div className="bg-zinc-950 border border-white/10 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-black/50 border-b border-white/10">
+                      <tr>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Customer</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Console</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Time Slot</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Duration</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Players</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Booked At</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {items.map((b) => (
+                        <tr key={b.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="text-xs font-bold text-white">{b.user_name}</div>
+                            <div className="text-[10px] text-muted-foreground">{b.user_email}</div>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-display font-black text-white">{b.console_id}</td>
+                          <td className="px-4 py-3 text-xs text-white font-bold">{b.time_slot}</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{b.duration_hours}h</td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">{b.players}</td>
+                          <td className="px-4 py-3 text-sm font-display font-black text-primary">₹{b.total_price}</td>
+                          <td className="px-4 py-3"><Badge status={b.status} /></td>
+                          <td className="px-4 py-3 text-[10px] text-muted-foreground whitespace-nowrap">
+                            {formatTime(b.created_at)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── ORDERS HISTORY ── */}
+      {view === "orders" && (
+        <div className="space-y-6">
+          {orderGroups.length === 0 ? (
+            <div className="bg-zinc-950 border border-white/10 p-12 text-center">
+              <History className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground text-xs uppercase tracking-widest">No order history yet</p>
+            </div>
+          ) : orderGroups.map(({ date, items }) => (
+            <div key={date} className="space-y-2">
+              {/* Date group header */}
+              <div className="flex items-center gap-3">
+                <CalendarDays className="w-4 h-4 text-secondary flex-shrink-0" />
+                <span className="text-xs font-black uppercase tracking-widest text-secondary">{formatDate(date)}</span>
+                <span className="text-[10px] text-muted-foreground">— {items.length} order{items.length !== 1 ? "s" : ""}</span>
+                <div className="flex-1 h-px bg-white/5" />
+              </div>
+
+              <div className="bg-zinc-950 border border-white/10 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-black/50 border-b border-white/10">
+                      <tr>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Customer</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Items</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Total</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</th>
+                        <th className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ordered At</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {items.map((o) => (
+                        <tr key={o.id} className="hover:bg-white/[0.02] transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="text-xs font-bold text-white">{o.user_name}</div>
+                            <div className="text-[10px] text-muted-foreground">{o.user_email}</div>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-white/70 max-w-[220px] truncate">
+                            {o.items?.map((i) => `${i.snack_name} x${i.quantity}`).join(", ") || "-"}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-display font-black text-primary">₹{o.total_price}</td>
+                          <td className="px-4 py-3"><Badge status={o.status} /></td>
+                          <td className="px-4 py-3 text-[10px] text-muted-foreground whitespace-nowrap">
+                            {new Date(o.created_at).toLocaleString("en-IN", {
+                              day: "2-digit", month: "short", year: "numeric",
+                              hour: "2-digit", minute: "2-digit", hour12: true,
+                            })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── LOYALTY TAB ─────────────────────────────────────────────────────
+function LoyaltyTab({ customers, onRefresh }: { customers: Customer[]; onRefresh: () => Promise<void> }) {
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  const handleVisit = async (userId: string, delta: number) => {
+    setUpdatingId(userId);
+    try {
+      await api.admin.updateVisits(userId, delta);
+      await onRefresh();
+    } catch (err: any) {
+      alert(err.message || "Failed to update visits");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const filtered = customers.filter(
+    (c) =>
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.email.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div>
+          <h2 className="font-display font-black text-white text-lg uppercase tracking-wider">
+            Loyalty Management <span className="text-secondary">({customers.length})</span>
+          </h2>
+          <p className="text-muted-foreground text-xs uppercase tracking-widest mt-1">
+            Mark visits or remove stamps from a customer's punch card
+          </p>
+        </div>
+        {/* Search */}
+        <div className="sm:ml-auto">
+          <input
+            type="text"
+            placeholder="Search customer..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full sm:w-64 px-3 py-2 bg-zinc-900 border border-white/10 text-white text-xs placeholder:text-muted-foreground focus:outline-none focus:border-secondary/50 uppercase tracking-widest"
+          />
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="bg-zinc-950 border border-white/10 p-12 text-center">
+          <Trophy className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-muted-foreground text-xs uppercase tracking-widest">
+            {search ? "No customers match your search" : "No customers yet"}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filtered.map((c) => {
+            const cycleVisits = c.total_visits % 10 === 0 && c.total_visits > 0 ? 10 : c.total_visits % 10;
+            const isUpdating = updatingId === c.id;
+
+            return (
+              <div
+                key={c.id}
+                className="bg-zinc-950 border border-white/10 hover:border-white/20 transition-colors p-5"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  {/* Customer info */}
+                  <div className="flex items-center gap-3 min-w-0 sm:w-56 flex-shrink-0">
+                    <div className="w-9 h-9 bg-white/10 flex items-center justify-center text-sm font-black text-white uppercase flex-shrink-0">
+                      {c.name.charAt(0)}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-white truncate">{c.name}</div>
+                      <div className="text-[10px] text-muted-foreground truncate">{c.email}</div>
+                    </div>
+                  </div>
+
+                  {/* Tier + XP */}
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <TierBadge tier={c.tier} />
+                    {c.stars > 0 && (
+                      <span className="text-xs text-yellow-400 font-black">+{c.stars}★</span>
+                    )}
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest">
+                      {c.total_xp.toLocaleString()} XP
+                    </span>
+                  </div>
+
+                  {/* Punch card */}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1 mb-2">
+                      {Array.from({ length: 10 }, (_, i) => {
+                        const stamped = i < cycleVisits;
+                        const isMilestone = i === 4 || i === 9;
+                        return (
+                          <div
+                            key={i}
+                            title={
+                              isMilestone
+                                ? i === 4
+                                  ? "Visit 5 — 50% off"
+                                  : "Visit 10 — 1 hr free"
+                                : `Visit ${i + 1}`
+                            }
+                            className={`
+                              w-6 h-6 flex items-center justify-center border text-[9px] font-black flex-shrink-0 transition-colors
+                              ${stamped
+                                ? isMilestone
+                                  ? "bg-primary border-primary text-white"
+                                  : "bg-white/25 border-white/60 text-white"
+                                : isMilestone
+                                  ? "bg-transparent border-primary/40 border-dashed text-primary/40"
+                                  : "bg-transparent border-white/15 text-white/15"
+                              }
+                            `}
+                          >
+                            {stamped ? <Check className="w-3 h-3" strokeWidth={3} /> : i + 1}
+                          </div>
+                        );
+                      })}
+                      <span className="ml-2 text-[10px] text-muted-foreground uppercase tracking-widest flex-shrink-0">
+                        {cycleVisits}/10
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest">
+                      <span className="text-white/50">{c.total_visits} total visits</span>
+                      {cycleVisits >= 5 && cycleVisits < 10 && (
+                        <span className="text-secondary font-black">· 50% off unlocked</span>
+                      )}
+                      {cycleVisits === 10 || (c.total_visits > 0 && c.total_visits % 10 === 0) ? (
+                        <span className="text-primary font-black">· 1 hr free unlocked</span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Visit controls */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest hidden sm:block">
+                      Visits
+                    </span>
+                    <button
+                      onClick={() => handleVisit(c.id, -1)}
+                      disabled={isUpdating || c.total_visits === 0}
+                      title="Remove 1 visit"
+                      className="w-8 h-8 flex items-center justify-center text-xs font-black bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {isUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : "−"}
+                    </button>
+                    <span className="w-10 text-center text-sm font-display font-black text-white">
+                      {c.total_visits}
+                    </span>
+                    <button
+                      onClick={() => handleVisit(c.id, 1)}
+                      disabled={isUpdating}
+                      title="Add 1 visit"
+                      className="w-8 h-8 flex items-center justify-center text-xs font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      {isUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : "+"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── GAMES TAB ───────────────────────────────────────────────────────
 function GamesTab({ games, onRefresh }: { games: Game[]; onRefresh: () => Promise<void> }) {

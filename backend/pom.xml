@@ -34,10 +34,17 @@
       <artifactId>spring-boot-starter-data-jpa</artifactId>
     </dependency>
 
-    <!-- H2 embedded database -->
+    <!-- H2 embedded database (kept for local dev) -->
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- PostgreSQL driver (production) -->
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
       <scope>runtime</scope>
     </dependency>
 
@@ -94,6 +101,58 @@
             </exclude>
           </excludes>
         </configuration>
+      </plugin>
+
+      <!-- Build React frontend and copy dist/ into Spring Boot static resources -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <!-- npm install -->
+          <execution>
+            <id>npm-install</id>
+            <phase>generate-resources</phase>
+            <goals><goal>exec</goal></goals>
+            <configuration>
+              <executable>npm</executable>
+              <arguments><argument>ci</argument></arguments>
+              <workingDirectory>${project.basedir}/..</workingDirectory>
+            </configuration>
+          </execution>
+          <!-- npm run build -->
+          <execution>
+            <id>npm-build</id>
+            <phase>generate-resources</phase>
+            <goals><goal>exec</goal></goals>
+            <configuration>
+              <executable>npm</executable>
+              <arguments><argument>run</argument><argument>build</argument></arguments>
+              <workingDirectory>${project.basedir}/..</workingDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Copy React dist/ → src/main/resources/static/ -->
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-react-build</id>
+            <phase>process-resources</phase>
+            <goals><goal>copy-resources</goal></goals>
+            <configuration>
+              <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/../dist</directory>
+                  <filtering>false</filtering>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
