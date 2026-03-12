@@ -24,9 +24,6 @@ FROM maven:3.9-eclipse-temurin-21 AS backend-build
 
 WORKDIR /app
 
-# Copy the built React dist from stage 1
-COPY --from=frontend-build /app/dist ./dist
-
 # Copy Maven wrapper and pom.xml first (layer cache for dependencies)
 COPY backend/pom.xml ./backend/pom.xml
 COPY backend/.mvn ./backend/.mvn
@@ -40,8 +37,11 @@ RUN chmod +x ./backend/mvnw && \
 # Copy backend source
 COPY backend/src ./backend/src
 
-# Build fat JAR (skip npm steps — dist already copied above)
-# We override the exec-maven-plugin executions by skipping them
+# Copy the built React dist directly into Spring Boot's static resources
+# This bypasses maven-resources-plugin entirely — no ambiguity
+COPY --from=frontend-build /app/dist ./backend/src/main/resources/static/
+
+# Build fat JAR (skip all npm/copy steps — static files already in place)
 RUN cd backend && \
     ./mvnw package -B -DskipTests \
       -Dexec.skip=true \
