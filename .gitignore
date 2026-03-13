@@ -27,4 +27,9 @@ backend/target/
 nul
 .vscode/
 
-# Misc
+# Eclipse IDE
+.classpath
+.factorypath
+.project
+.settings/
+..backend-run.log
