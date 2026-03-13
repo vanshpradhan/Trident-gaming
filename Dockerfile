@@ -58,11 +58,11 @@ WORKDIR /app
 # Copy the fat JAR from the build stage
 COPY --from=backend-build /app/backend/target/cafe-1.0.0.jar app.jar
 
-# Expose the port Spring Boot listens on
-EXPOSE 8080
+# Render assigns a dynamic port via $PORT (default 10000)
+EXPOSE 10000
 
 # Activate the production Spring profile
 ENV SPRING_PROFILES_ACTIVE=prod
 
-# Run the app
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Use $PORT from Render (falls back to 8080 for local docker run)
+ENTRYPOINT ["sh", "-c", "java -jar app.jar --server.port=${PORT:-8080}"]
