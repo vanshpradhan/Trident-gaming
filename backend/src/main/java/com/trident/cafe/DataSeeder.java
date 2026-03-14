@@ -24,6 +24,8 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         if (userRepository.count() == 0) {
             seedAdmin();
+        } else {
+            migrateAdminCredentials();
         }
         if (consoleRepository.count() == 0) {
             seedConsoles();
@@ -37,12 +39,22 @@ public class DataSeeder implements CommandLineRunner {
         User admin = new User();
         admin.setId(UUID.randomUUID().toString());
         admin.setName("Trident Admin");
-        admin.setEmail("admin@tridentcafe.com");
-        admin.setPasswordHash(bcrypt.encode("admin123"));
+        admin.setEmail("tridentcafe.official@gmail.com");
+        admin.setPasswordHash(bcrypt.encode("trident123"));
         admin.setRole("admin");
         admin.setPhone("");
         userRepository.save(admin);
-        System.out.println("[DataSeeder] Admin user created: admin@tridentcafe.com");
+        System.out.println("[DataSeeder] Admin user created: tridentcafe.official@gmail.com");
+    }
+
+    private void migrateAdminCredentials() {
+        // Update old admin@tridentcafe.com to new credentials if it still exists
+        userRepository.findByEmail("admin@tridentcafe.com").ifPresent(admin -> {
+            admin.setEmail("tridentcafe.official@gmail.com");
+            admin.setPasswordHash(bcrypt.encode("trident123"));
+            userRepository.save(admin);
+            System.out.println("[DataSeeder] Admin credentials migrated to tridentcafe.official@gmail.com");
+        });
     }
 
     private void seedConsoles() {
