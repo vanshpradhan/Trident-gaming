@@ -1,50 +1,63 @@
 package com.trident.cafe.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.io.IOException;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * SPA fallback controller — returns index.html for any route that:
- *   - does NOT start with /api/
- *   - does NOT contain a dot (i.e. not a static asset like .js, .css, .png)
+ * SPA fallback controller — implements ErrorController so it only handles
+ * requests AFTER Spring's built-in ResourceHttpRequestHandler has already
+ * tried (and failed) to find a matching static resource.
+ *
+ * For any 404 on a non-API, non-asset path, it returns index.html so that
+ * React Router can handle client-side routing.
  *
  * Static assets in /assets/** are served by Spring Boot's default
- * ResourceHttpRequestHandler before this controller is ever reached,
- * because @RestController mappings have lower priority than the
- * ResourceHttpRequestHandler when the resource actually exists on the classpath.
- *
- * We use @GetMapping without `produces` so we don't rely on content negotiation
- * (which caused 406 / blank page when browsers sent Accept: text/html for JS).
+ * ResourceHttpRequestHandler from classpath:/static/ — this controller
+ * never intercepts them.
  */
-@RestController
-public class SpaController {
+@Controller
+public class SpaController implements ErrorController {
 
     private static final Resource INDEX = new ClassPathResource("static/index.html");
 
-    @GetMapping("/{*path}")
-    public ResponseEntity<Resource> spa(HttpServletRequest request) throws IOException {
-        String uri = request.getRequestURI();
+    @RequestMapping("/error")
+    public ResponseEntity<Resource> handleError(HttpServletRequest request) {
+        // Get the original status code
+        Integer statusCode = (Integer) request.getAttribute(
+                "jakarta.servlet.error.status_code");
 
-        // Skip API routes — should never reach here but guard anyway
-        if (uri.startsWith("/api/")) {
+        // Only intercept 404s for SPA routing; let other errors pass through
+        if (statusCode == null || statusCode != HttpStatus.NOT_FOUND.value()) {
+            return ResponseEntity.status(statusCode != null ? statusCode : 500).build();
+        }
+
+        // Get the original request URI
+        String originalUri = (String) request.getAttribute(
+                "jakarta.servlet.error.request_uri");
+        if (originalUri == null) {
+            originalUri = request.getRequestURI();
+        }
+
+        // Don't serve index.html for API routes — return proper 404
+        if (originalUri.startsWith("/api/")) {
             return ResponseEntity.notFound().build();
         }
 
-        // Skip requests that look like static asset files (.js, .css, .png, etc.)
-        // Spring's ResourceHttpRequestHandler serves these; if they 404 there,
-        // returning index.html would make things worse, not better.
-        String lastSegment = uri.substring(uri.lastIndexOf('/') + 1);
+        // Don't serve index.html for actual static asset requests that truly 404'd
+        String lastSegment = originalUri.substring(originalUri.lastIndexOf('/') + 1);
         if (lastSegment.contains(".")) {
             return ResponseEntity.notFound().build();
         }
 
+        // SPA fallback: serve index.html for client-side routes
         if (!INDEX.exists()) {
             return ResponseEntity.notFound().build();
         }

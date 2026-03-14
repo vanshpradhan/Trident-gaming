@@ -21,6 +21,7 @@ trident-h2*
 
 # Java build artifacts
 backend/target/
+backend/src/main/resources/static/
 
 # OS / Editor
 .DS_Store
