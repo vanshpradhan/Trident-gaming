@@ -103,57 +103,8 @@
         </configuration>
       </plugin>
 
-      <!-- Build React frontend and copy dist/ into Spring Boot static resources -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.1.0</version>
-        <executions>
-          <!-- npm install -->
-          <execution>
-            <id>npm-install</id>
-            <phase>generate-resources</phase>
-            <goals><goal>exec</goal></goals>
-            <configuration>
-              <executable>npm</executable>
-              <arguments><argument>ci</argument></arguments>
-              <workingDirectory>${project.basedir}/..</workingDirectory>
-            </configuration>
-          </execution>
-          <!-- npm run build -->
-          <execution>
-            <id>npm-build</id>
-            <phase>generate-resources</phase>
-            <goals><goal>exec</goal></goals>
-            <configuration>
-              <executable>npm</executable>
-              <arguments><argument>run</argument><argument>build</argument></arguments>
-              <workingDirectory>${project.basedir}/..</workingDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-
-      <!-- Copy React dist/ → src/main/resources/static/ -->
-      <plugin>
-        <artifactId>maven-resources-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>copy-react-build</id>
-            <phase>process-resources</phase>
-            <goals><goal>copy-resources</goal></goals>
-            <configuration>
-              <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
-              <resources>
-                <resource>
-                  <directory>${project.basedir}/../dist</directory>
-                  <filtering>false</filtering>
-                </resource>
-              </resources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+      <!-- React dist is copied into src/main/resources/static/ by the Dockerfile
+           before Maven runs — no exec or resources plugin needed here -->
     </plugins>
   </build>
 </project>

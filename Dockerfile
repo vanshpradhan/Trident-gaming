@@ -41,11 +41,9 @@ COPY backend/src ./backend/src
 # This bypasses maven-resources-plugin entirely — no ambiguity
 COPY --from=frontend-build /app/dist ./backend/src/main/resources/static/
 
-# Build fat JAR (skip all npm/copy steps — static files already in place)
+# Build fat JAR (static files already copied into resources/static/ above)
 RUN cd backend && \
-    ./mvnw package -B -DskipTests \
-      -Dexec.skip=true \
-      -Dmaven.exec.skip=true
+    ./mvnw package -B -DskipTests
 # Output: /app/backend/target/cafe-1.0.0.jar
 
 # ─────────────────────────────────────────────
