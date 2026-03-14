@@ -80,6 +80,13 @@
       <optional>true</optional>
     </dependency>
 
+    <!-- SendGrid for email notifications -->
+    <dependency>
+      <groupId>com.sendgrid</groupId>
+      <artifactId>sendgrid-java</artifactId>
+      <version>4.10.2</version>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

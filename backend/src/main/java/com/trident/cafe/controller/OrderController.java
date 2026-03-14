@@ -6,7 +6,9 @@ import com.trident.cafe.entity.Snack;
 import com.trident.cafe.repository.OrderItemRepository;
 import com.trident.cafe.repository.OrderRepository;
 import com.trident.cafe.repository.SnackRepository;
+import com.trident.cafe.repository.UserRepository;
 import com.trident.cafe.security.AuthGuard;
+import com.trident.cafe.service.EmailNotificationService;
 import com.trident.cafe.service.SseService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +31,8 @@ public class OrderController {
     @Autowired private OrderItemRepository orderItemRepository;
     @Autowired private SnackRepository snackRepository;
     @Autowired private SseService sseService;
+    @Autowired private UserRepository userRepository;
+    @Autowired private EmailNotificationService emailNotificationService;
 
     // POST /api/orders - Create a new order (customers only)
     @PostMapping
@@ -88,6 +92,11 @@ public class OrderController {
         order.setStatus("pending");
         orderRepository.save(order);
         orderItemRepository.saveAll(itemsToSave);
+
+        // Send email notification to admin
+        userRepository.findById(userId).ifPresent(user ->
+            emailNotificationService.sendOrderNotification(order, itemsToSave, user.getEmail())
+        );
 
         Map<String, Object> fullOrder = orderToMap(order, itemsToSave);
 

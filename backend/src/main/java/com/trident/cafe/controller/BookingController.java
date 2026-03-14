@@ -6,7 +6,9 @@ import com.trident.cafe.entity.Loyalty;
 import com.trident.cafe.repository.BookingRepository;
 import com.trident.cafe.repository.ConsoleRepository;
 import com.trident.cafe.repository.LoyaltyRepository;
+import com.trident.cafe.repository.UserRepository;
 import com.trident.cafe.security.AuthGuard;
+import com.trident.cafe.service.EmailNotificationService;
 import com.trident.cafe.service.SseService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,6 +34,8 @@ public class BookingController {
     @Autowired private ConsoleRepository consoleRepository;
     @Autowired private LoyaltyRepository loyaltyRepository;
     @Autowired private SseService sseService;
+    @Autowired private UserRepository userRepository;
+    @Autowired private EmailNotificationService emailNotificationService;
 
     // GET /api/bookings - List user's bookings
     @GetMapping
@@ -154,6 +158,11 @@ public class BookingController {
         booking.setTotalPrice(totalPrice);
         booking.setStatus("pending");
         bookingRepository.save(booking);
+
+        // Send email notification to admin
+        userRepository.findById(userId).ifPresent(user ->
+            emailNotificationService.sendBookingNotification(booking, user.getEmail(), console.getName())
+        );
 
         // Update loyalty XP and visits
         loyaltyRepository.findByUserId(userId).ifPresent(loyalty -> {
